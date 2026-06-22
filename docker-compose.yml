@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: petops-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: petops
+      POSTGRES_USER: petops
+      POSTGRES_PASSWORD: petops
+    volumes:
+      - petops-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petops -d petops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  petops-postgres-data:
