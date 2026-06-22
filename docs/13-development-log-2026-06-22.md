@@ -1,0 +1,284 @@
+﻿# Development Log - 2026-06-22
+
+이 문서는 PetOps Commerce 프로젝트의 2026-06-22 진행 내용을 정리합니다.
+
+## 현재 상태
+
+- 로컬 프로젝트 경로: `C:\pet-ops-commerce`
+- 원격 저장소: `https://github.com/jinsejong-1028/pet-ops-commerce`
+- 기본 브랜치: `main`
+- 현재 Git 상태: `main`만 남고 작업 트리 clean
+- Java: Temurin JDK 21
+- IDE: IntelliJ IDEA
+- DB: Docker PostgreSQL 16
+
+## 완료한 작업
+
+### 1. Spring Boot 초기 프로젝트 구성
+
+- Spring Initializr로 프로젝트 생성
+- Java 21, Gradle, Spring Boot 기반 구성
+- 최초 커밋 생성
+- GitHub 원격 저장소 연결
+- `main` 브랜치 push
+
+커밋 예시:
+
+```text
+chore: initialize Spring Boot project
+```
+
+### 2. Git 작업 흐름 문서화
+
+브랜치:
+
+```text
+docs/git-workflow
+```
+
+작업 내용:
+
+- Git 브랜치 전략 문서 추가
+- 커밋 메시지 규칙 정리
+- Pull Request 기반 작업 흐름 정리
+- 로컬 원본 압축 파일 Git 추적 제외
+
+문서:
+
+```text
+docs/10-git-workflow.md
+```
+
+### 3. Health API 추가
+
+브랜치:
+
+```text
+feature/health-api
+```
+
+작업 내용:
+
+- `GET /api/v1/health` API 추가
+- 서버 상태 응답 DTO 추가
+- Spring Security 기본 설정 추가
+- Health API 테스트 추가
+- Health API 구현 문서 추가
+
+응답 예시:
+
+```json
+{
+  "status": "UP",
+  "application": "pet-ops-commerce"
+}
+```
+
+문서:
+
+```text
+docs/11-health-api.md
+```
+
+### 4. Docker PostgreSQL 구성
+
+브랜치:
+
+```text
+chore/docker-postgres
+```
+
+작업 내용:
+
+- `docker-compose.yml` 추가
+- PostgreSQL 16 컨테이너 구성
+- DB volume 설정
+- DB healthcheck 설정
+- Spring Boot Datasource/JPA/Flyway 설정 추가
+- Docker PostgreSQL 문서 추가
+
+문서:
+
+```text
+docs/12-docker-postgres.md
+```
+
+### 5. application.properties 주석 정리
+
+브랜치:
+
+```text
+chore/document-app-properties
+```
+
+작업 내용:
+
+- Application 설정 주석 추가
+- Server 설정 주석 추가
+- Datasource 설정 주석 추가
+- JPA 설정 주석 추가
+- Flyway 설정 주석 추가
+
+변경 파일:
+
+```text
+src/main/resources/application.properties
+```
+
+
+### 6. 초기 설계 문서 복구
+
+브랜치:
+
+```text
+docs/restore-planning-docs
+```
+
+작업 내용:
+
+- 누락된 초기 설계 문서 `00~09` 복구
+- 프로젝트 계획, 요구사항, 아키텍처, ERD, API, 기술 스택 문서 복구
+- Spring Boot 프로젝트 설정 문서 복구
+
+복구 문서:
+
+```text
+docs/00-implementation-plan.md
+docs/00-project-overview.md
+docs/01-requirements.md
+docs/02-architecture.md
+docs/03-erd.md
+docs/04-api-spec.md
+docs/05-tech-stack.md
+docs/06-infra-load-balancing.md
+docs/07-roadmap.md
+docs/08-database-and-cost-strategy.md
+docs/09-spring-boot-project-setup.md
+```
+## 확인한 실행 결과
+
+### 테스트
+
+```powershell
+.\gradlew.bat test
+```
+
+결과:
+
+```text
+BUILD SUCCESSFUL
+```
+
+### Docker PostgreSQL
+
+```powershell
+docker compose up -d
+docker compose ps
+```
+
+확인 내용:
+
+- `petops-postgres` 컨테이너 실행
+- 상태 `healthy` 확인
+- 로컬 `5432` 포트 연결 확인
+
+### 서버 실행
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+확인 내용:
+
+- Spring Boot 서버 실행
+- Tomcat 8080 포트 실행
+- PostgreSQL 연결 설정 적용
+
+### 브라우저 확인
+
+```text
+http://localhost:8080/api/v1/health
+```
+
+응답:
+
+```json
+{"status":"UP","application":"pet-ops-commerce"}
+```
+
+## 오늘 정리한 Git 흐름
+
+새 작업 시작:
+
+```powershell
+git checkout main
+git pull
+git checkout -b 작업브랜치명
+```
+
+작업 확인:
+
+```powershell
+git status
+git diff
+```
+
+커밋:
+
+```powershell
+git add .
+git commit -m "타입: 작업 내용"
+```
+
+원격 브랜치 push:
+
+```powershell
+git push -u origin 작업브랜치명
+```
+
+PR merge 후 정리:
+
+```powershell
+git checkout main
+git pull
+git branch -d 작업브랜치명
+git fetch --prune
+git branch -a
+```
+
+## 현재 브랜치 정리 결과
+
+```text
+* main
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main
+```
+
+의미:
+
+- 로컬 작업 브랜치 삭제 완료
+- 원격 작업 브랜치 정리 완료
+- `main` 기준으로 깨끗한 상태
+
+## 다음 진행 후보
+
+다음 작업은 새 브랜치에서 시작합니다.
+
+후보:
+
+- `feature/common-api-response`: 공통 응답 구조 추가
+- `chore/flyway-initial-schema`: Flyway 초기 migration 추가
+- `feature/member-domain`: 회원 도메인 시작
+- `feature/product-domain`: 상품 도메인 시작
+
+추천 다음 단계:
+
+```text
+chore/flyway-initial-schema
+```
+
+이유:
+
+- JPA와 Flyway를 이미 설정했기 때문에 DB schema 관리 흐름을 먼저 잡는 것이 자연스럽습니다.
+- 이후 회원, 상품, 주문 도메인 Entity를 추가할 때 migration 기준을 만들 수 있습니다.
+

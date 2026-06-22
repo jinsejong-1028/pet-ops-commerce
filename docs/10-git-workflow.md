@@ -1,4 +1,4 @@
-# Git Workflow
+﻿# Git Workflow
 
 이 문서는 PetOps Commerce 프로젝트에서 Git을 실무처럼 관리하기 위한 기준을 정리합니다.
 
@@ -117,3 +117,57 @@ Pull Request에는 다음 내용을 정리합니다.
 - Pull Request 기반 협업 흐름 이해
 - 문서와 코드 변경 이력 관리 경험
 - 안정 브랜치와 작업 브랜치 분리 경험
+## PR merge 후 정리
+
+GitHub에서 Pull Request를 merge한 뒤에는 로컬 `main`을 최신화합니다.
+
+```powershell
+git checkout main
+git pull
+```
+
+merge가 끝난 작업 브랜치는 로컬에서 삭제합니다.
+
+```powershell
+git branch -d 브랜치명
+```
+
+원격 브랜치 정리 상태는 다음 명령으로 확인합니다.
+
+```powershell
+git fetch --prune
+git branch -a
+```
+
+정상 상태는 `main`과 `origin/main`만 남아 있는 상태입니다.
+
+```text
+* main
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main
+```
+
+## 자주 쓰는 확인 명령
+
+변경 파일 확인:
+
+```powershell
+git status
+```
+
+변경 내용 확인:
+
+```powershell
+git diff
+```
+
+`git diff` 화면에서 `:`가 보이면 `q`를 눌러 빠져나옵니다.
+
+전체 변경 파일 스테이징:
+
+```powershell
+git add .
+```
+
+실무에서도 `git add .`를 자주 사용하지만, 실행 전 `git status`와 `git diff`로 원하지 않는 파일이 포함되지 않았는지 확인합니다.
+
