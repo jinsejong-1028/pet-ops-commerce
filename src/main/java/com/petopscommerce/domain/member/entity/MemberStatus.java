@@ -1,10 +1,16 @@
 package com.petopscommerce.domain.member.entity;
 
 /**
- * 회원 상태는 탈퇴, 정지 같은 운영 제어를 위해 별도 enum으로 관리합니다.
+ * - 회원 상태
+ * - 운영 제어 기준
  */
 public enum MemberStatus {
+    /** - 정상 회원 */
     ACTIVE,
+
+    /** - 정지 회원 */
     SUSPENDED,
+
+    /** - 탈퇴 회원 */
     WITHDRAWN
 }
