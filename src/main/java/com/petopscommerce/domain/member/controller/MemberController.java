@@ -3,6 +3,7 @@ package com.petopscommerce.domain.member.controller;
 import com.petopscommerce.domain.member.dto.CreateMemberRequest;
 import com.petopscommerce.domain.member.dto.MemberResponse;
 import com.petopscommerce.domain.member.service.MemberService;
+import com.petopscommerce.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,27 +35,29 @@ public class MemberController {
 
     /**
      * - 회원 생성
+     * - 성공 응답을 공통 응답으로 감싸서 반환
      *
      * @param request 회원 생성 요청
      *                - email: 로그인 이메일
      *                - password: 원본 비밀번호
      *                - name: 회원 이름
-     * @return 생성된 회원 응답
+     * @return 생성된 회원 공통 응답
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MemberResponse createMember(@Valid @RequestBody CreateMemberRequest request) {
-        return memberService.createMember(request);
+    public ApiResponse<MemberResponse> createMember(@Valid @RequestBody CreateMemberRequest request) {
+        return ApiResponse.ok(memberService.createMember(request));
     }
 
     /**
      * - 회원 단건 조회
+     * - 성공 응답을 공통 응답으로 감싸서 반환
      *
      * @param memberId 회원 ID
-     * @return 회원 단건 응답
+     * @return 회원 단건 공통 응답
      */
     @GetMapping("/{memberId}")
-    public MemberResponse getMember(@PathVariable Long memberId) {
-        return memberService.getMember(memberId);
+    public ApiResponse<MemberResponse> getMember(@PathVariable Long memberId) {
+        return ApiResponse.ok(memberService.getMember(memberId));
     }
 }
