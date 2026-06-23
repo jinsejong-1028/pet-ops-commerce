@@ -1,29 +1,32 @@
-# ERD 초안
+﻿# ERD 초안
+
+## 설계 기준
+
+- DB 레벨 FK 제약은 걸지 않습니다.
+- `*_id` 컬럼과 인덱스로 논리 관계를 표현합니다.
+- 관계 검증은 서비스 로직과 테스트에서 처리합니다.
+- 주요 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`를 둡니다.
+- LOT 정보는 `lot1` ~ `lot5`로 관리하고, 상세 의미는 문서와 comment로 설명합니다.
 
 ## 핵심 엔티티
 
 ```mermaid
 erDiagram
   MEMBER ||--o{ PET_PROFILE : owns
-  MEMBER ||--o{ CART_ITEM : has
   MEMBER ||--o{ ORDER : places
-  MEMBER ||--o{ MEMBER_COUPON : owns
 
   PRODUCT_CATEGORY ||--o{ PRODUCT : contains
-  PRODUCT ||--o{ CART_ITEM : selected
+  PRODUCT ||--o{ LOT : has
   PRODUCT ||--o{ ORDER_ITEM : ordered
   PRODUCT ||--o{ STOCK : stocked
 
+  LOT ||--o{ STOCK : grouped_by
   WAREHOUSE ||--o{ STOCK : holds
   STOCK ||--o{ STOCK_HISTORY : records
 
   ORDER ||--o{ ORDER_ITEM : contains
   ORDER ||--o| PAYMENT : paid_by
   ORDER ||--o{ ORDER_EVENT : records
-
-  COUPON ||--o{ MEMBER_COUPON : issued
-  COUPON ||--o{ ORDER_COUPON : applied
-  ORDER ||--o{ ORDER_COUPON : uses
 
   MEMBER {
     bigint id PK
@@ -33,80 +36,137 @@ erDiagram
     string role
     string status
     datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   PET_PROFILE {
     bigint id PK
-    bigint member_id FK
+    bigint member_id
     string name
     string species
     date birth_date
     string allergy_notes
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
+  }
+
+  PRODUCT_CATEGORY {
+    bigint id PK
+    string name
+    int display_order
+    string status
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   PRODUCT {
     bigint id PK
-    bigint category_id FK
+    bigint category_id
     string name
+    string description
     int price
     string sale_status
     datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
+  }
+
+  LOT {
+    bigint id PK
+    bigint product_id
+    string lot1
+    string lot2
+    date lot3
+    date lot4
+    string lot5
+    string status
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   WAREHOUSE {
     bigint id PK
-    string name
     string code UK
+    string name
     string status
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   STOCK {
     bigint id PK
-    bigint product_id FK
-    bigint warehouse_id FK
+    bigint product_id
+    bigint warehouse_id
+    bigint lot_id
     int quantity
     int safety_quantity
     bigint version
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   STOCK_HISTORY {
     bigint id PK
-    bigint stock_id FK
+    bigint stock_id
     string change_type
     int quantity
     int before_quantity
     int after_quantity
     string reason
     datetime created_at
+    bigint created_by
   }
 
   ORDER {
     bigint id PK
-    bigint member_id FK
+    bigint member_id
     string order_no UK
     string status
     int total_amount
     int discount_amount
     int payment_amount
     datetime ordered_at
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   ORDER_ITEM {
     bigint id PK
-    bigint order_id FK
-    bigint product_id FK
+    bigint order_id
+    bigint product_id
     int quantity
     int unit_price
     int line_amount
+    datetime created_at
+    bigint created_by
   }
 
   PAYMENT {
     bigint id PK
-    bigint order_id FK
+    bigint order_id UK
     string payment_key
     string status
     int amount
     datetime approved_at
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
   }
 
   COUPON {
@@ -117,25 +177,55 @@ erDiagram
     int min_order_amount
     datetime starts_at
     datetime ends_at
+    string status
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
+  }
+
+  ORDER_EVENT {
+    bigint id PK
+    bigint order_id
+    string event_type
+    string description
+    datetime created_at
+    bigint created_by
   }
 ```
+
+## LOT 컬럼 의미
+
+| 컬럼 | 의미 |
+|---|---|
+| lot1 | LOT 주요 식별값 |
+| lot2 | 보조 LOT 정보 |
+| lot3 | 유효기간 |
+| lot4 | 입고일자 |
+| lot5 | 기타 관리값 |
 
 ## 초기 인덱스 후보
 
 | 테이블 | 인덱스 | 목적 |
 |---|---|---|
-| member | email | 로그인 |
-| product | category_id, sale_status | 상품 목록 필터 |
-| stock | product_id, warehouse_id | 상품/창고별 재고 조회 |
-| stock_history | stock_id, created_at | 재고 이력 조회 |
+| members | email | 로그인 |
+| pet_profiles | member_id | 회원별 반려동물 조회 |
+| products | category_id, sale_status | 상품 목록 필터 |
+| lots | product_id | 상품별 LOT 조회 |
+| lots | lot3 | 유효기간 기준 조회 |
+| lots | lot4 | 입고일자 기준 조회 |
+| stocks | product_id, warehouse_id, lot_id | 상품/창고/LOT별 재고 조회 |
+| stock_histories | stock_id, created_at | 재고 이력 조회 |
 | orders | member_id, ordered_at | 회원 주문 내역 |
 | orders | order_no | 주문 단건 조회 |
-| order_event | order_id, created_at | 주문 이벤트 추적 |
+| order_items | order_id | 주문별 상품 조회 |
+| order_events | order_id, created_at | 주문 이벤트 추적 |
 
 ## 동시성 검토 대상
 
 - 주문 생성 시 재고 차감
 - 주문 취소 시 재고 복구
+- LOT별 재고 차감 순서
 - 쿠폰 중복 사용 방지
 - 결제 승인 이벤트 중복 수신 방지
-
+```
