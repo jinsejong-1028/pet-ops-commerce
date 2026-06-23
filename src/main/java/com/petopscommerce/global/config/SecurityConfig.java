@@ -1,5 +1,7 @@
 package com.petopscommerce.global.config;
 
+import jakarta.servlet.DispatcherType;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,6 +21,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Service/Controller 예외가 /error 처리 과정에서 403으로 바뀌지 않도록 허용합니다.
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
                         // TODO: Auth 기능을 추가하면 회원 조회는 /members/me 중심으로 잠그고, 관리자 조회는 권한 검사를 붙입니다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/members").permitAll()
