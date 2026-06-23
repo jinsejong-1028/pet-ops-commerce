@@ -14,8 +14,8 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 /**
- * members 테이블과 매핑되는 회원 도메인 Entity입니다.
- * DB schema는 Flyway가 만들고, JPA는 이 Entity와 테이블 구조가 맞는지 validate합니다.
+ * - 회원 Entity
+ * - members 테이블 매핑
  */
 @Entity
 @Table(name = "members")
@@ -29,7 +29,8 @@ public class Member {
     private String email;
 
     /**
-     * 원본 비밀번호는 저장하지 않고, PasswordEncoder가 만든 해시만 저장합니다.
+     * - 비밀번호 해시
+     * - 원본 비밀번호 저장 금지
      */
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
@@ -37,28 +38,48 @@ public class Member {
     @Column(nullable = false, length = 100)
     private String name;
 
+    /**
+     * - 회원 권한
+     * - 인증/인가 기준값
+     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private MemberRole role;
 
+    /**
+     * - 회원 상태
+     * - 운영 제어 기준값
+     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private MemberStatus status;
 
+    /**
+     * - 생성 일시
+     */
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    /**
+     * - 생성자 ID
+     */
     @Column(name = "created_by")
     private Long createdBy;
 
+    /**
+     * - 수정 일시
+     */
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * - 수정자 ID
+     */
     @Column(name = "updated_by")
     private Long updatedBy;
 
     protected Member() {
-        // JPA가 Entity를 생성할 때 사용하는 기본 생성자입니다.
+        // JPA 기본 생성자
     }
 
     private Member(String email, String passwordHash, String name, MemberRole role, MemberStatus status) {
@@ -70,14 +91,21 @@ public class Member {
     }
 
     /**
-     * 신규 회원은 기본 권한 MEMBER, 기본 상태 ACTIVE로 시작합니다.
+     * - 신규 회원 생성
+     * - 기본 권한 MEMBER
+     * - 기본 상태 ACTIVE
+     *
+     * @param email 로그인 이메일
+     * @param passwordHash 비밀번호 해시
+     * @param name 회원 이름
+     * @return 신규 회원 Entity
      */
     public static Member create(String email, String passwordHash, String name) {
         return new Member(email, passwordHash, name, MemberRole.MEMBER, MemberStatus.ACTIVE);
     }
 
     /**
-     * 생성 시점에는 생성/수정 시간을 같은 값으로 맞춰 audit 컬럼의 일관성을 유지합니다.
+     * - 최초 저장 전 audit 시간 설정
      */
     @PrePersist
     void prePersist() {
@@ -87,7 +115,7 @@ public class Member {
     }
 
     /**
-     * 수정 시점에는 updated_at만 갱신합니다.
+     * - 수정 저장 전 updatedAt 갱신
      */
     @PreUpdate
     void preUpdate() {

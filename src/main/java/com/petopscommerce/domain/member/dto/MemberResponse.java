@@ -7,8 +7,15 @@ import com.petopscommerce.domain.member.entity.MemberStatus;
 import java.time.LocalDateTime;
 
 /**
- * 회원 응답 DTO입니다.
- * 보안상 passwordHash는 응답에 포함하지 않습니다.
+ * - 회원 응답 DTO
+ * - passwordHash 응답 제외
+ *
+ * @param id 회원 ID
+ * @param email 로그인 이메일
+ * @param name 회원 이름
+ * @param role 회원 권한
+ * @param status 회원 상태
+ * @param createdAt 생성 일시
  */
 public record MemberResponse(
         Long id,
@@ -19,6 +26,12 @@ public record MemberResponse(
         LocalDateTime createdAt
 ) {
 
+    /**
+     * - Entity를 응답 DTO로 변환
+     *
+     * @param member 회원 Entity
+     * @return 회원 응답 DTO
+     */
     public static MemberResponse from(Member member) {
         return new MemberResponse(
                 member.getId(),

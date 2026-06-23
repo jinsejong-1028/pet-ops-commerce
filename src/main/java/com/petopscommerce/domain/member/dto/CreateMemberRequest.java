@@ -5,8 +5,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * 회원 생성 요청 DTO입니다.
- * Controller 밖으로 원본 비밀번호가 새지 않도록 요청 전용 객체로 분리합니다.
+ * - 회원 생성 요청 DTO
+ * - 원본 비밀번호 요청 전용 객체
+ *
+ * @param email 로그인 이메일
+ * @param password 원본 비밀번호
+ * @param name 회원 이름
  */
 public record CreateMemberRequest(
         @NotBlank(message = "email is required")
