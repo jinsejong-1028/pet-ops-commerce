@@ -1,6 +1,8 @@
 package com.petopscommerce;
 
 import com.petopscommerce.domain.member.repository.MemberRepository;
+import com.petopscommerce.domain.product.repository.ProductCategoryRepository;
+import com.petopscommerce.domain.product.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -15,6 +17,12 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private MemberRepository memberRepository;
+
+    @MockitoBean
+    private ProductCategoryRepository productCategoryRepository;
+
+    @MockitoBean
+    private ProductRepository productRepository;
 
     @Test
     void contextLoads() {

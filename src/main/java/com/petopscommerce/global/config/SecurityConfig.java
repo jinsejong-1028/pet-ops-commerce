@@ -28,6 +28,11 @@ public class SecurityConfig {
                         // TODO: Auth 기능을 추가하면 회원 조회는 /members/me 중심으로 잠그고, 관리자 조회는 권한 검사를 붙입니다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/members").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/members/*").permitAll()
+                        // TODO: 관리자 인증을 추가하면 상품/카테고리 생성은 관리자 권한으로 제한합니다.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/product-categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/product-categories").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/*").permitAll()
                         .anyRequest().authenticated()
                 );
 
