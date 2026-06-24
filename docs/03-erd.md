@@ -8,6 +8,17 @@
 - 주요 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`를 둡니다.
 - LOT 정보는 `lot1` ~ `lot5`로 관리하고, 상세 의미는 문서와 comment로 설명합니다.
 
+## 상품 소유 모델
+
+현재 ERD는 단일 운영사 B2C 커머스를 기준으로 합니다.
+
+- 상품은 운영사가 등록하고 관리합니다.
+- 회원은 상품을 판매하지 않고 구매합니다.
+- `products.category_id`는 상품 분류를 위한 논리 관계입니다.
+- `products`에는 `seller_id`, `vendor_id`, `company_id`를 두지 않습니다.
+
+입점 판매자형 마켓플레이스로 확장할 경우에는 `vendors` 또는 `stores` 테이블을 추가하고 `products.vendor_id` 같은 소유 주체 컬럼을 별도 설계합니다.
+
 ## 핵심 엔티티
 
 ```mermaid
