@@ -1,0 +1,31 @@
+### Login
+# 회원가입으로 만든 계정으로 로그인하고 JWT access token을 확인합니다.
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "password123"
+}
+
+
+### Login validation error
+# 이메일 형식과 비밀번호 필수값 검증 실패 응답을 확인합니다.
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "password": ""
+}
+
+
+### Login wrong password
+# 이메일 또는 비밀번호가 틀리면 401 공통 실패 응답이 나와야 합니다.
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "wrong-password"
+}
