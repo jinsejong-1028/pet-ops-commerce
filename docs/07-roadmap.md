@@ -16,9 +16,9 @@
 
 | 구분 | 현재 상태 |
 |---|---|
-| 현재 브랜치 | `docs/defer-admin-action-log` |
-| Git 상태 | 문서 보류 작업 진행 중 |
-| 마지막 완료 작업 | `feature/audit-user-tracking` |
+| 현재 브랜치 | `docs/update-session-handoff` |
+| Git 상태 | 세션 인수인계 문서/skill 정리 중 |
+| 마지막 완료 작업 | `docs/defer-admin-action-log` |
 | 다음 추천 작업 | `feature/inventory-domain` |
 
 ## Phase 0. 설계 - 완료
@@ -129,7 +129,23 @@
 feature/admin-action-log
 ```
 
-## Phase 5. JPA와 DB 설계 강화 - 예정
+## Phase 5. 재고와 주문 흐름 - 진행 예정
+
+다음 작업은 재고 도메인입니다.
+
+```text
+feature/inventory-domain
+```
+
+재고 도메인에서 확인할 내용:
+
+- 창고 기준 재고 관리
+- lot 기준 상세 재고 관리
+- 상품과 재고의 관계
+- FK 제약 없이 애플리케이션에서 참조 유효성 검증
+- 향후 주문 생성 시 재고 차감으로 이어지는 구조
+
+## Phase 6. JPA와 DB 설계 강화 - 예정
 
 - 연관관계 정리
 - N+1 문제 재현과 해결
@@ -137,49 +153,49 @@ feature/admin-action-log
 - 인덱스 적용 전후 비교
 - 트랜잭션 경계 문서화
 
-## Phase 6. Redis - 예정
+## Phase 7. Redis - 예정
 
 - 상품 목록 캐시
 - 토큰 블랙리스트
 - 재고 차감 분산락
 - 캐시 적용 전후 성능 비교
 
-## Phase 7. Message Queue - 예정
+## Phase 8. Message Queue - 예정
 
 - 주문 생성 이벤트 발행
 - 재고 차감/알림 비동기 처리
 - 중복 이벤트 처리와 멱등성 설계
 - 실패 이벤트 재처리 전략 문서화
 
-## Phase 8. Batch - 예정
+## Phase 9. Batch - 예정
 
 - 일별 매출 집계
 - 일별 재고 스냅샷
 - 오래된 운영 이벤트 아카이빙
 - Batch Job 실행 결과 문서화
 
-## Phase 9. 서버 분리와 로드밸런싱 - 예정
+## Phase 10. 서버 분리와 로드밸런싱 - 예정
 
 - API 서버 3개 컨테이너 실행
 - Nginx reverse proxy 구성
 - health check
 - 요청 분산 검증
 
-## Phase 10. 모니터링 - 예정
+## Phase 11. 모니터링 - 예정
 
 - Actuator endpoint 구성
 - Prometheus metrics 수집
 - Grafana dashboard 구성
 - 장애 상황 예시와 대응 문서화
 
-## Phase 11. AI/데이터 확장 - 예정
+## Phase 12. AI/데이터 확장 - 예정
 
 - 고객 응대 초안 생성 Mock
 - 운영 이벤트 요약
 - Python FastAPI AI Service 분리
 - LLM API 연동 후보 정리
 
-## Phase 12. 포트폴리오 정리 - 예정
+## Phase 13. 포트폴리오 정리 - 예정
 
 - README 고도화
 - 아키텍처 의사결정 기록

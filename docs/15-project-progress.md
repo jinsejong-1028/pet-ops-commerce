@@ -9,10 +9,10 @@
 | 기준 날짜 | 2026-06-24 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `docs/defer-admin-action-log` |
-| Git 상태 | `main` 최신화 후 문서 보류 작업 브랜치 진행 중 |
+| 현재 브랜치 | `docs/update-session-handoff` |
+| Git 상태 | `main` 최신화 후 세션 인수인계 문서/skill 정리 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `feature/audit-user-tracking` |
+| 마지막 완료 작업 | `docs/defer-admin-action-log` |
 | 다음 추천 작업 | `feature/inventory-domain` |
 
 ## 완료 작업
@@ -37,20 +37,22 @@
 | 16 | `docs/clarify-commerce-model` | B2C 단일 운영사 상품 판매 모델 명확화 | `00-project-overview.md`, `01-requirements.md`, `03-erd.md` |
 | 17 | `feature/auth-jwt-login` | JWT 로그인 API와 인증 필터 추가 | `22-auth-jwt-login.md` |
 | 18 | `feature/audit-user-tracking` | JPA Auditing 기반 created_by/updated_by 자동 입력 | `23-audit-user-tracking.md` |
+| 19 | `docs/defer-admin-action-log` | 관리자 작업 로그 보류 결정과 추후 범위 정리 | `15-project-progress.md`, `07-roadmap.md` |
 
 ## 현재 진행 작업
 
-현재 진행 중인 작업은 관리자 작업 로그 보류 결정 문서화입니다.
+현재 진행 중인 작업은 다음 세션 인수인계 기준 정리입니다.
 
 ```text
-docs/defer-admin-action-log
+docs/update-session-handoff
 ```
 
 목표:
 
-- 관리자 작업 로그를 지금 구현하지 않는 이유 정리
-- 추후 `feature/admin-action-log` 작업 범위 명시
-- 핵심 도메인 개발 흐름을 먼저 진행한다는 기준 정리
+- 오늘까지의 작업 흐름을 개발 로그로 정리
+- 프로젝트 진행 현황과 로드맵을 현재 상태에 맞게 정리
+- `petops-portfolio-workflow` skill을 최신 작업 방식에 맞게 개선
+- 다음 세션이 같은 방식으로 `feature/inventory-domain`을 시작할 수 있게 기준 고정
 
 ## 다음 추천 작업
 
@@ -148,6 +150,28 @@ AdminActionLogService 추가
 요청 IP/User-Agent 추출 유틸 추가
 상품 생성/수정/삭제 흐름에서 로그 저장
 관리자 작업 로그 문서 추가
+```
+
+## 다음 세션 시작 기준
+
+다음 세션에서 아래 상태로 시작하면 됩니다.
+
+```text
+프로젝트: C:\pet-ops-commerce
+현재 브랜치: main
+현재 상태: git status clean, origin/main 동기화 완료
+다음 작업: feature/inventory-domain
+작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
+```
+
+시작 명령:
+
+```powershell
+cd C:\pet-ops-commerce
+git checkout main
+git pull
+git checkout -b feature/inventory-domain
+git status
 ```
 
 ## 검증 기준
