@@ -1,4 +1,4 @@
-﻿# 개발 로드맵
+# 개발 로드맵
 
 이 문서는 PetOps Commerce 프로젝트의 전체 개발 순서와 현재 진행 상태를 정리합니다.
 
@@ -17,8 +17,8 @@
 |---|---|
 | 현재 브랜치 | `main` |
 | Git 상태 | `origin/main` 동기화, working tree clean |
-| 마지막 완료 작업 | `chore/flyway-initial-schema` |
-| 다음 추천 작업 | `feature/member-domain` |
+| 마지막 완료 작업 | `feature/common-api-response` |
+| 다음 추천 작업 | `feature/product-domain` |
 
 ## Phase 0. 설계 - 완료
 
@@ -41,17 +41,26 @@
 - JPA/Flyway 기본 설정
 - Flyway 초기 migration 추가
 - ERD와 Flyway schema 문서화
+- IntelliJ HTTP Client 수동 API 테스트 흐름 추가
 
-## Phase 2. 핵심 도메인 - 진행 예정
+## Phase 2. 핵심 도메인 - 진행 중
+
+완료:
+
+- `feature/member-domain`
+  - 회원 Entity
+  - 회원 Repository
+  - 회원 Service
+  - 회원 생성/조회 API
+  - 회원 Controller/Service 테스트
 
 다음 추천 순서:
 
-1. `feature/member-domain`
-2. `feature/product-domain`
-3. `feature/inventory-domain`
-4. `feature/order-domain`
-5. `feature/payment-domain`
-6. `feature/coupon-domain`
+1. `feature/product-domain`
+2. `feature/inventory-domain`
+3. `feature/order-domain`
+4. `feature/payment-domain`
+5. `feature/coupon-domain`
 
 목표:
 
@@ -62,12 +71,19 @@
 - 테스트 작성
 - Flyway schema와 Entity validate 흐름 확인
 
-## Phase 3. 공통 API 구조 - 예정
+## Phase 3. 공통 API 구조 - 부분 완료
 
-- 공통 응답 구조
-- 공통 예외 처리
-- validation error 응답
-- API 에러 코드 정리
+완료:
+
+- `ApiResponse<T>` 공통 응답 구조
+- `GlobalExceptionHandler` 전역 예외 처리
+- `ResponseStatusException` 실패 응답 통일
+- validation error 응답 통일
+
+예정:
+
+- API 에러 코드 세분화
+- 도메인별 custom exception 도입
 - Swagger/OpenAPI 설정
 
 ## Phase 4. JPA와 DB 설계 강화 - 예정
