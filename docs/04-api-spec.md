@@ -32,6 +32,22 @@
 
 ## 상품
 
+상품은 단일 운영사가 등록하고 사용자가 구매하는 B2C 상품 카탈로그입니다.
+현재 1차 구현에서는 인증/관리자 기능 전 단계이므로 학습 검증을 위해 `/products`, `/product-categories` 생성 API를 임시로 열어둡니다.
+운영 단계에서는 상품 등록/수정 API를 Admin 권한으로 잠글 예정입니다.
+
+### 현재 구현 API
+
+| Method | Path | 설명 | 권한 |
+|---|---|---|---|
+| POST | `/product-categories` | 상품 카테고리 생성 | Guest 임시 |
+| GET | `/product-categories` | 상품 카테고리 목록 조회 | Guest |
+| POST | `/products` | 상품 생성 | Guest 임시 |
+| GET | `/products` | 상품 목록 조회 | Guest |
+| GET | `/products/{productId}` | 상품 상세 조회 | Guest |
+
+### 운영 목표 API
+
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
 | GET | `/products` | 상품 목록 조회 | Guest |
