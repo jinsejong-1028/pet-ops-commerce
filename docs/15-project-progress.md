@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-06-24 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `docs/update-session-handoff` |
-| Git 상태 | `main` 최신화 후 세션 인수인계 문서/skill 정리 중 |
+| 현재 브랜치 | `feature/inventory-domain` |
+| Git 상태 | 재고 도메인 구현 중 |
 | 현재 DB | Docker PostgreSQL 16 |
 | 마지막 완료 작업 | `docs/defer-admin-action-log` |
-| 다음 추천 작업 | `feature/inventory-domain` |
+| 다음 추천 작업 | `feature/order-domain` |
 
 ## 완료 작업
 
@@ -41,24 +41,7 @@
 
 ## 현재 진행 작업
 
-현재 진행 중인 작업은 다음 세션 인수인계 기준 정리입니다.
-
-```text
-docs/update-session-handoff
-```
-
-목표:
-
-- 오늘까지의 작업 흐름을 개발 로그로 정리
-- 프로젝트 진행 현황과 로드맵을 현재 상태에 맞게 정리
-- `petops-portfolio-workflow` skill을 최신 작업 방식에 맞게 개선
-- 다음 세션이 같은 방식으로 `feature/inventory-domain`을 시작할 수 있게 기준 고정
-
-## 다음 추천 작업
-
-### 1. 재고 도메인
-
-브랜치:
+현재 진행 중인 작업은 재고 도메인 구현입니다.
 
 ```text
 feature/inventory-domain
@@ -66,22 +49,14 @@ feature/inventory-domain
 
 목표:
 
-- 창고 Entity 작성
-- lot Entity 작성
-- 재고 Entity 작성
-- 상품별 재고 조회 API 작성
-- lot 기준 재고 관리 구조 검증
-- 상품/lot/재고 관계를 FK 제약 없이 애플리케이션에서 검증
+- `locations` 테이블 추가
+- 현재고를 창고/location/LOT 단위로 조회
+- 총수량, 작업수량, 가용수량 구조 반영
+- 추후 할당, PICK, 출고 프로세스를 담을 수 있는 재고 모델 정리
+- 재고 도메인 문서 작성
+## 다음 추천 작업
 
-학습 포인트:
-
-- 재고 도메인 모델링
-- lot 기반 상세 재고 관리
-- JPA Repository 조회 메서드
-- 트랜잭션 경계
-- 재고 수량 변경 전 동시성 고려 지점 정리
-
-### 2. 주문 도메인
+### 1. 주문 도메인
 
 브랜치:
 
@@ -95,6 +70,23 @@ feature/order-domain
 - 주문 상품 Entity 작성
 - 주문 생성 API 작성
 - 주문 생성 시 상품/회원/재고 검증 흐름 설계
+- 재고 할당, PICK, 출고 프로세스로 이어지는 경계 정리
+
+### 2. 재고 수량 변경 프로세스
+
+브랜치 후보:
+
+```text
+feature/inventory-stock-workflow
+```
+
+목표:
+
+- 재고 할당 API 작성
+- PICKTO location 이동 API 작성
+- 출고 처리 API 작성
+- 재고 변경 이력 저장
+- 동시성 충돌 검토
 
 ### 3. API 문서화
 
@@ -107,9 +99,8 @@ chore/openapi-docs
 목표:
 
 - Swagger/OpenAPI 설정
-- Health/Member/Auth/Product API 문서화
+- Health/Member/Auth/Product/Inventory API 문서화
 - 이후 API 추가 시 문서 자동 확인 흐름 적용
-
 ## 보류 작업
 
 | 작업 | 보류 이유 | 추후 브랜치 후보 |

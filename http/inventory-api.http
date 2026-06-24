@@ -1,0 +1,29 @@
+### Login for inventory management
+# 현재고 조회는 로그인 JWT가 필요합니다.
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "password123"
+}
+
+> {% client.global.set("accessToken", response.body.data.accessToken); %}
+
+
+### Get stocks
+# location 단위 현재고 목록을 조회합니다.
+GET http://localhost:8080/api/v1/admin/stocks
+Authorization: Bearer {{accessToken}}
+
+
+### Get stocks by product, warehouse, location
+# 상품/창고/location 조건으로 현재고 목록을 조회합니다.
+GET http://localhost:8080/api/v1/admin/stocks?productId=1&warehouseId=1&locationId=1
+Authorization: Bearer {{accessToken}}
+
+
+### Get stock
+# 현재고 단건을 조회합니다.
+GET http://localhost:8080/api/v1/admin/stocks/1
+Authorization: Bearer {{accessToken}}

@@ -1,4 +1,4 @@
-﻿# ERD 초안
+# ERD 초안
 
 ## 설계 기준
 
@@ -7,6 +7,8 @@
 - 관계 검증은 서비스 로직과 테스트에서 처리합니다.
 - 주요 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`를 둡니다.
 - LOT 정보는 `lot1` ~ `lot5`로 관리하고, 상세 의미는 문서와 comment로 설명합니다.
+- 재고는 `창고 -> location -> 상품/LOT 현재고` 순서로 관리합니다.
+- 재고 가용수량은 `total_quantity - working_quantity`로 계산합니다.
 
 ## 상품 소유 모델
 
@@ -32,7 +34,9 @@ erDiagram
   PRODUCT ||--o{ STOCK : stocked
 
   LOT ||--o{ STOCK : grouped_by
+  WAREHOUSE ||--o{ LOCATION : contains
   WAREHOUSE ||--o{ STOCK : holds
+  LOCATION ||--o{ STOCK : stores
   STOCK ||--o{ STOCK_HISTORY : records
 
   ORDER ||--o{ ORDER_ITEM : contains
@@ -115,12 +119,27 @@ erDiagram
     bigint updated_by
   }
 
+
+  LOCATION {
+    bigint id PK
+    bigint warehouse_id
+    string code
+    string name
+    string location_type
+    string status
+    datetime created_at
+    bigint created_by
+    datetime updated_at
+    bigint updated_by
+  }
   STOCK {
     bigint id PK
     bigint product_id
     bigint warehouse_id
+    bigint location_id
     bigint lot_id
-    int quantity
+    int total_quantity
+    int working_quantity
     int safety_quantity
     bigint version
     datetime created_at
@@ -225,7 +244,8 @@ erDiagram
 | lots | product_id | 상품별 LOT 조회 |
 | lots | lot3 | 유효기간 기준 조회 |
 | lots | lot4 | 입고일자 기준 조회 |
-| stocks | product_id, warehouse_id, lot_id | 상품/창고/LOT별 재고 조회 |
+| locations | warehouse_id | 창고별 location 조회 |
+| stocks | product_id, warehouse_id, location_id, lot_id | 상품/창고/location/LOT별 재고 조회 |
 | stock_histories | stock_id, created_at | 재고 이력 조회 |
 | orders | member_id, ordered_at | 회원 주문 내역 |
 | orders | order_no | 주문 단건 조회 |
@@ -239,4 +259,35 @@ erDiagram
 - LOT별 재고 차감 순서
 - 쿠폰 중복 사용 방지
 - 결제 승인 이벤트 중복 수신 방지
+```
+
+## 재고 작업 흐름
+
+재고 수량은 아래 세 값을 기준으로 해석합니다.
+
+| 항목 | 의미 |
+|---|---|
+| total_quantity | 해당 location에 실제 존재하는 총수량 |
+| working_quantity | 할당/피킹/출고 작업 중이라 판매 가능하지 않은 수량 |
+| available_quantity | `total_quantity - working_quantity`로 계산하는 가용수량 |
+
+할당, PICK, 출고 흐름은 아래 기준으로 설계합니다.
+
+```text
+할당
+- STORAGE location에서 주문에 사용할 재고를 찜
+- total_quantity 유지
+- working_quantity 증가
+- available_quantity 감소
+
+PICK
+- STORAGE location에서 PICKTO location으로 재고 이동
+- STORAGE location: total_quantity 감소, working_quantity 감소
+- PICKTO location: total_quantity 증가, working_quantity 증가
+- 창고 전체 총수량은 유지
+
+출고
+- PICKTO location에서 실제 출고
+- PICKTO location: total_quantity 감소, working_quantity 감소
+- 창고 전체 총수량 감소
 ```
