@@ -1,5 +1,6 @@
 package com.petopscommerce.domain.product.entity;
 
+import com.petopscommerce.global.audit.BaseAuditEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,11 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-
-import java.time.LocalDateTime;
 
 /**
  * - 상품 카테고리 Entity
@@ -19,7 +16,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "product_categories")
-public class ProductCategory {
+public class ProductCategory extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,18 +38,6 @@ public class ProductCategory {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private ProductCategoryStatus status;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "created_by")
-    private Long createdBy;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    @Column(name = "updated_by")
-    private Long updatedBy;
 
     protected ProductCategory() {
         // JPA 기본 생성자
@@ -76,24 +61,6 @@ public class ProductCategory {
         return new ProductCategory(name, displayOrder, ProductCategoryStatus.ACTIVE);
     }
 
-    /**
-     * - 최초 저장 전 audit 시간 설정
-     */
-    @PrePersist
-    void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    /**
-     * - 수정 저장 전 updatedAt 갱신
-     */
-    @PreUpdate
-    void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
     public Long getId() {
         return id;
     }
@@ -108,21 +75,5 @@ public class ProductCategory {
 
     public ProductCategoryStatus getStatus() {
         return status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public Long getCreatedBy() {
-        return createdBy;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public Long getUpdatedBy() {
-        return updatedBy;
     }
 }

@@ -5,6 +5,7 @@ import com.petopscommerce.domain.product.repository.ProductCategoryRepository;
 import com.petopscommerce.domain.product.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(properties = {
@@ -23,6 +24,9 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private ProductRepository productRepository;
+
+    @MockitoBean(name = "jpaMappingContext")
+    private JpaMetamodelMappingContext jpaMappingContext;
 
     @Test
     void contextLoads() {

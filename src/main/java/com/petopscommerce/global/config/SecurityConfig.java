@@ -66,9 +66,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/members").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/members/*").permitAll()
                         // TODO: 관리자 권한 기능을 추가하면 상품/카테고리 생성은 ADMIN 권한으로 제한합니다.
-                        .requestMatchers(HttpMethod.POST, "/api/v1/product-categories").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/product-categories").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/product-categories").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/products").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/products").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/*").permitAll()
                         .anyRequest().authenticated()
                 )
