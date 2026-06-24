@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,6 +65,7 @@ class ProductControllerTest {
         when(productCategoryService.createCategory(any(CreateProductCategoryRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/product-categories")
+                        .with(adminJwt())
                         .contentType("application/json")
                         .content("{\"name\":\"사료\",\"displayOrder\":1}"))
                 .andExpect(status().isCreated())
@@ -110,6 +113,7 @@ class ProductControllerTest {
         when(productService.createProduct(any(CreateProductRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/products")
+                        .with(adminJwt())
                         .contentType("application/json")
                         .content("{\"categoryId\":1,\"name\":\"고양이 사료\",\"description\":\"실내묘용 건식 사료\",\"price\":25000}"))
                 .andExpect(status().isCreated())
@@ -129,6 +133,7 @@ class ProductControllerTest {
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "category not found"));
 
         mockMvc.perform(post("/api/v1/products")
+                        .with(adminJwt())
                         .contentType("application/json")
                         .content("{\"categoryId\":999,\"name\":\"고양이 사료\",\"description\":\"실내묘용 건식 사료\",\"price\":25000}"))
                 .andExpect(status().isNotFound())
@@ -180,5 +185,19 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].id").value(10L));
+    }
+
+    /**
+     * - 테스트용 관리자 JWT
+     * - 상품/카테고리 생성 인증 통과용
+     *
+     * @return mock JWT 요청 설정
+     */
+    private RequestPostProcessor adminJwt() {
+        return jwt().jwt(jwt -> jwt
+                .subject("1")
+                .claim("email", "admin@example.com")
+                .claim("role", "ADMIN")
+        );
     }
 }
