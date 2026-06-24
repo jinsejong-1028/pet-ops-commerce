@@ -1,0 +1,68 @@
+### Create product category
+# 상품 등록 전에 사용할 카테고리를 먼저 생성합니다.
+POST http://localhost:8080/api/v1/product-categories
+Content-Type: application/json
+
+{
+  "name": "사료",
+  "displayOrder": 1
+}
+
+
+### Get product categories
+# 상품 카테고리 목록을 조회합니다.
+GET http://localhost:8080/api/v1/product-categories
+
+
+### Create product
+# 위 카테고리 생성 응답의 data.id 값을 categoryId에 넣습니다.
+POST http://localhost:8080/api/v1/products
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "name": "고양이 사료",
+  "description": "실내묘용 건식 사료",
+  "price": 25000
+}
+
+
+### Get product
+# 상품 단건 조회를 확인합니다.
+GET http://localhost:8080/api/v1/products/1
+
+
+### Get products
+# 상품 목록을 조회합니다.
+GET http://localhost:8080/api/v1/products
+
+
+### Get products by category and sale status
+# 카테고리와 판매 상태 조건으로 상품 목록을 조회합니다.
+GET http://localhost:8080/api/v1/products?categoryId=1&saleStatus=ON_SALE
+
+
+### Create product with missing category
+# 존재하지 않는 categoryId로 상품을 생성하면 404 공통 실패 응답이 나와야 정상입니다.
+POST http://localhost:8080/api/v1/products
+Content-Type: application/json
+
+{
+  "categoryId": 999,
+  "name": "강아지 간식",
+  "description": "치석 관리 간식",
+  "price": 12000
+}
+
+
+### Product validation error
+# 잘못된 상품 요청으로 400 공통 실패 응답을 확인합니다.
+POST http://localhost:8080/api/v1/products
+Content-Type: application/json
+
+{
+  "categoryId": null,
+  "name": "",
+  "description": "",
+  "price": -1
+}
