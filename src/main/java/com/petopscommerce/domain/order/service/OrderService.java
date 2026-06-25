@@ -10,15 +10,15 @@ import com.petopscommerce.domain.order.repository.OrderRepository;
 import com.petopscommerce.domain.product.entity.Product;
 import com.petopscommerce.domain.product.entity.ProductSaleStatus;
 import com.petopscommerce.domain.product.repository.ProductRepository;
+import com.petopscommerce.global.businessnumber.entity.BusinessNumberType;
+import com.petopscommerce.global.businessnumber.service.BusinessNumberGenerator;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * - 주문 비즈니스 로직
@@ -28,11 +28,11 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private static final DateTimeFormatter ORDER_NO_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
+    private final BusinessNumberGenerator businessNumberGenerator;
 
     /**
      * - 생성자 주입
@@ -40,11 +40,13 @@ public class OrderService {
      * @param orderRepository 주문 DB 접근 객체
      * @param orderItemRepository 주문 상품 DB 접근 객체
      * @param productRepository 상품 DB 접근 객체
+     * @param businessNumberGenerator 업무 번호 생성기
      */
-    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, ProductRepository productRepository) {
+    public OrderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, ProductRepository productRepository, BusinessNumberGenerator businessNumberGenerator) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.productRepository = productRepository;
+        this.businessNumberGenerator = businessNumberGenerator;
     }
 
     /**
@@ -66,7 +68,8 @@ public class OrderService {
                 .reduce(0, Integer::sum);
 
         LocalDateTime orderedAt = LocalDateTime.now();
-        Order order = Order.create(memberId, createOrderNo(orderedAt), totalAmount, orderedAt);
+        String orderNo = businessNumberGenerator.generate(BusinessNumberType.ORDER, null, orderedAt);
+        Order order = Order.create(memberId, orderNo, totalAmount, orderedAt);
         Order savedOrder = orderRepository.save(order);
 
         List<OrderItem> orderItems = orderLines.stream()
@@ -96,16 +99,6 @@ public class OrderService {
                 product.getPrice(),
                 itemRequest.quantity() * product.getPrice()
         );
-    }
-
-    private String createOrderNo(LocalDateTime orderedAt) {
-        String timePart = orderedAt.format(ORDER_NO_TIME_FORMATTER);
-        String randomPart = UUID.randomUUID().toString()
-                .replace("-", "")
-                .substring(0, 8)
-                .toUpperCase();
-
-        return "ORD-" + timePart + "-" + randomPart;
     }
 
     private record OrderLine(
