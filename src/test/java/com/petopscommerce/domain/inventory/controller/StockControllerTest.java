@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -122,6 +123,16 @@ class StockControllerTest {
     }
 
     /**
+     * - 일반 회원 현재고 조회 차단 검증
+     */
+    @Test
+    @DisplayName("일반 회원은 현재고 목록 API 호출 시 403을 반환한다")
+    void getStocksWithMemberRole() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/stocks")
+                        .with(memberJwt()))
+                .andExpect(status().isForbidden());
+    }
+    /**
      * - 테스트용 관리자 JWT
      * - 현재고 조회 인증 통과용
      *
@@ -132,6 +143,19 @@ class StockControllerTest {
                 .subject("1")
                 .claim("email", "admin@example.com")
                 .claim("role", "ADMIN")
-        );
+        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
+    }
+    /**
+     * - 테스트용 일반 회원 JWT
+     * - 관리자 API 권한 차단 확인용
+     *
+     * @return mock JWT 요청 설정
+     */
+    private RequestPostProcessor memberJwt() {
+        return jwt().jwt(jwt -> jwt
+                .subject("2")
+                .claim("email", "user@example.com")
+                .claim("role", "MEMBER")
+        ).authorities(new SimpleGrantedAuthority("ROLE_MEMBER"));
     }
 }

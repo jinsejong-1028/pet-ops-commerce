@@ -65,14 +65,13 @@ public class SecurityConfig {
                         // TODO: Auth 기능 안정화 후 회원 조회는 /members/me 중심으로 잠급니다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/members").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/members/*").permitAll()
-                        // TODO: 관리자 권한 기능을 추가하면 상품/카테고리 생성은 ADMIN 권한으로 제한합니다.
-                        .requestMatchers(HttpMethod.POST, "/api/v1/product-categories").authenticated()
+                        // 조회 API는 비로그인 사용자도 상품 탐색이 가능하도록 공개합니다.
                         .requestMatchers(HttpMethod.GET, "/api/v1/product-categories").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/products").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/*").permitAll()
-                        // TODO: 권한 세분화 시 재고 조회는 OPERATOR 이상으로 제한합니다.
-                        .requestMatchers(HttpMethod.GET, "/api/v1/admin/stocks", "/api/v1/admin/stocks/*").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/orders").authenticated()
+                        // 운영/관리 API는 관리자 또는 운영 담당자만 접근합니다.
+                        .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "OPERATOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/product-categories", "/api/v1/products").hasAnyRole("ADMIN", "OPERATOR")
+                        // 그 외 API는 로그인 사용자만 접근합니다.
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

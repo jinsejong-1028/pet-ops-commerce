@@ -11,8 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -75,5 +77,21 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.data").doesNotExist())
                 .andExpect(jsonPath("$.message").isString());
+    }
+    /**
+     * - 비활성 회원 로그인 실패 응답 검증
+     */
+    @Test
+    @DisplayName("비활성 회원 로그인 시 403 공통 실패 응답을 반환한다")
+    void loginWithInactiveMember() throws Exception {
+        when(authService.login(any(LoginRequest.class)))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "member is not active"));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
+                        .content("{\"email\":\"user@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("member is not active"));
     }
 }
