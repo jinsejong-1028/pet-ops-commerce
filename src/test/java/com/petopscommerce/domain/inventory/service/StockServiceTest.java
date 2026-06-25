@@ -1,6 +1,7 @@
 package com.petopscommerce.domain.inventory.service;
 
 import com.petopscommerce.domain.inventory.dto.StockResponse;
+import com.petopscommerce.domain.inventory.dto.StockSearchCondition;
 import com.petopscommerce.domain.inventory.entity.Stock;
 import com.petopscommerce.domain.inventory.repository.StockRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -44,7 +46,8 @@ class StockServiceTest {
         ReflectionTestUtils.setField(stock, "id", 5L);
         ReflectionTestUtils.setField(stock, "workingQuantity", 3);
         ReflectionTestUtils.setField(stock, "createdAt", LocalDateTime.of(2026, 6, 24, 10, 0));
-        when(stockRepository.findStocks(1L, 2L, 3L)).thenReturn(List.of(stock));
+        when(stockRepository.searchStocks(argThat(condition -> matchesCondition(condition, 1L, 2L, 3L))))
+                .thenReturn(List.of(stock));
 
         List<StockResponse> responses = stockService.getStocks(1L, 2L, 3L);
 
@@ -83,5 +86,21 @@ class StockServiceTest {
                 .isInstanceOfSatisfying(ResponseStatusException.class, exception ->
                         assertThat(exception.getStatusCode()).isEqualTo(NOT_FOUND)
                 );
+    }
+
+    /**
+     * - 현재고 검색 조건 비교
+     *
+     * @param condition 실제 전달된 검색 조건
+     * @param productId 기대 상품 ID
+     * @param warehouseId 기대 창고 ID
+     * @param locationId 기대 location ID
+     * @return 조건 일치 여부
+     */
+    private boolean matchesCondition(StockSearchCondition condition, Long productId, Long warehouseId, Long locationId) {
+        return condition != null
+                && productId.equals(condition.productId())
+                && warehouseId.equals(condition.warehouseId())
+                && locationId.equals(condition.locationId());
     }
 }

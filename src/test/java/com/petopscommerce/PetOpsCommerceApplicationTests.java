@@ -1,5 +1,6 @@
 package com.petopscommerce;
 
+import com.petopscommerce.domain.inventory.repository.StockRepository;
 import com.petopscommerce.domain.member.repository.MemberRepository;
 import com.petopscommerce.domain.product.repository.ProductCategoryRepository;
 import com.petopscommerce.domain.product.repository.ProductRepository;
@@ -24,6 +25,9 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private ProductRepository productRepository;
+
+    @MockitoBean
+    private StockRepository stockRepository;
 
     @MockitoBean(name = "jpaMappingContext")
     private JpaMetamodelMappingContext jpaMappingContext;
