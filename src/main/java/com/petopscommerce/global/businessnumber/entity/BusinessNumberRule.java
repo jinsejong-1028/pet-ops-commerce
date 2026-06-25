@@ -106,6 +106,26 @@ public class BusinessNumberRule extends BaseAuditEntity {
         return new BusinessNumberRule(code, prefix, dateFormat, sequenceWidth, resetCycle, scopeType, separator, allocationSize, true);
     }
 
+    /**
+     * - 업무 번호 유형의 기본 규칙 생성
+     *
+     * @param type 업무 번호 유형
+     * @return 신규 업무 번호 규칙
+     */
+    public static BusinessNumberRule create(BusinessNumberType type) {
+        return new BusinessNumberRule(
+                type.name(),
+                type.getDefaultPrefix(),
+                type.getDefaultDateFormat(),
+                type.getDefaultSequenceWidth(),
+                type.getDefaultResetCycle(),
+                type.getDefaultScopeType(),
+                type.getDefaultSeparator(),
+                type.getDefaultAllocationSize(),
+                true
+        );
+    }
+
     public Long getId() {
         return id;
     }

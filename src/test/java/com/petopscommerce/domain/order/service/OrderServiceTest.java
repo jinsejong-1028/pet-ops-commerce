@@ -30,8 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -71,7 +69,7 @@ class OrderServiceTest {
         ReflectionTestUtils.setField(product, "id", 1L);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(businessNumberGenerator.generate(eq(BusinessNumberType.ORDER), isNull(), any(LocalDateTime.class))).thenReturn("ORD-20260625-000001");
+        when(businessNumberGenerator.generate(BusinessNumberType.ORDER)).thenReturn("ORD-20260625-000001");
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             ReflectionTestUtils.setField(order, "id", 100L);

@@ -28,7 +28,6 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class OrderService {
 
-
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
@@ -68,7 +67,7 @@ public class OrderService {
                 .reduce(0, Integer::sum);
 
         LocalDateTime orderedAt = LocalDateTime.now();
-        String orderNo = businessNumberGenerator.generate(BusinessNumberType.ORDER, null, orderedAt);
+        String orderNo = businessNumberGenerator.generate(BusinessNumberType.ORDER);
         Order order = Order.create(memberId, orderNo, totalAmount, orderedAt);
         Order savedOrder = orderRepository.save(order);
 

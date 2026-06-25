@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-06-25 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `main` |
-| Git 상태 | QueryDSL 전환 merge 후 다음 작업 준비 중 |
+| 현재 브랜치 | `refactor/business-number-generator-responsibility` |
+| Git 상태 | 업무 번호 생성기 책임 정리 후 PR 준비 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `feature/inventory-querydsl-search` |
-| 다음 추천 작업 | `feature/order-domain` |
+| 마지막 완료 작업 | `refactor/business-number-generator` |
+| 다음 추천 작업 | `test/business-number-concurrency` |
 
 ## 완료 작업
 
@@ -40,39 +40,50 @@
 | 19 | `docs/defer-admin-action-log` | 관리자 작업 로그 보류 결정과 추후 범위 정리 | `15-project-progress.md`, `07-roadmap.md` |
 | 20 | `feature/inventory-domain` | location 단위 재고 도메인, 총수량/작업수량/가용수량 구조, 현재고 조회 API 추가 | `25-inventory-domain.md` |
 | 21 | `feature/inventory-querydsl-search` | 현재고 동적 검색을 QueryDSL custom repository 구조로 전환 | `27-inventory-querydsl-search.md` |
+| 22 | `feature/order-domain` | 주문/주문상품 도메인과 주문 생성 API 추가 | `29-order-domain.md` |
+| 23 | `fix/auth-member-status-check` | 비활성 회원 로그인 차단과 URL 권한 정책 정리 | `30-auth-security-policy.md` |
+| 24 | `refactor/business-number-generator` | DB 기반 업무 번호 생성기와 주문번호 공통화 추가 | `31-business-number-generator.md` |
 
 ## 현재 진행 작업
 
-현재 진행 중인 구현 작업은 없습니다.
+현재 진행 중인 브랜치:
 
 ```text
-main
+refactor/business-number-generator-responsibility
 ```
 
 현재 상태:
 
-- `feature/inventory-querydsl-search` merge 완료
-- QueryDSL 전환 문서 반영 완료
-- 다음 구현 작업은 주문 도메인
-- 재고 수량 변경 프로세스는 주문 도메인 이후 별도 브랜치로 진행
+- `BusinessNumberGenerator` public API를 `generate(type)` 중심으로 정리
+- 기준 시각은 `Clock` bean으로 내부 처리
+- `BusinessNumberType`에 기본 rule 정보를 두고, rule이 없으면 generator가 생성
+- 주문 서비스는 업무 번호 유형만 전달
+- 주석은 업무 흐름 중심으로 재정리
+- 자동 테스트와 주문 API 수동 확인 완료
+- 문서 최신화 후 PR 예정
+
+주의:
+
+- 테스트 편의를 위해 실무 API와 맞지 않는 함수는 추가하지 않습니다.
+- 테스트 코드는 필요성이 있을 때 먼저 제안하고, 사용자 승인 후 작성합니다.
+- HTTP Client나 URL 기반 수동 테스트 안내는 기존처럼 진행합니다.
+
 ## 다음 추천 작업
 
-### 1. 주문 도메인
+### 1. 업무 번호 동시성 테스트
 
-브랜치:
+브랜치 후보:
 
 ```text
-feature/order-domain
+test/business-number-concurrency
 ```
 
 목표:
 
-- 주문 Entity 작성
-- 주문 상품 Entity 작성
-- 주문 생성 API 작성
-- 주문 생성 시 회원/상품 검증 흐름 설계
-- 주문 금액 계산 흐름 작성
-- 재고 할당, PICK, 출고 프로세스로 이어지는 경계 정리
+- `allocation_size = 1` 기준 수동 동시 요청 검증
+- 주문번호 중복 여부 DB 조회
+- `BusinessNumberRangeAllocator`의 PostgreSQL row lock 검증 방안 정리
+- 필요 시 사용자 승인 후 동시성 통합 테스트 추가
 
 ### 2. 재고 수량 변경 프로세스
 
@@ -103,6 +114,7 @@ chore/openapi-docs
 - Swagger/OpenAPI 설정
 - Health/Member/Auth/Product/Inventory/Order API 문서화
 - 이후 API 추가 시 문서 자동 확인 흐름 적용
+
 ## 보류 작업
 
 | 작업 | 보류 이유 | 추후 브랜치 후보 |
@@ -147,13 +159,13 @@ AdminActionLogService 추가
 
 ## 다음 세션 시작 기준
 
-주문 도메인 작업은 아래 상태로 시작하면 됩니다.
+현재 브랜치 PR merge 후 동시성 테스트 작업은 아래 상태로 시작하면 됩니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
 현재 브랜치: main
 현재 상태: git status clean, origin/main 동기화 완료
-다음 작업: feature/order-domain
+다음 작업: test/business-number-concurrency
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
 ```
 
@@ -163,9 +175,10 @@ AdminActionLogService 추가
 cd C:\pet-ops-commerce
 git checkout main
 git pull
-git checkout -b feature/order-domain
+git checkout -b test/business-number-concurrency
 git status
 ```
+
 ## 검증 기준
 
 기본 검증:
@@ -189,6 +202,7 @@ http/member-api.http
 http/auth-api.http
 http/product-api.http
 http/inventory-api.http
+http/order-api.http
 ```
 
 브라우저 확인:
