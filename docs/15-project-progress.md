@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-06-25 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `docs/update-inventory-handoff` |
-| Git 상태 | 재고 도메인 인수인계 문서/skill 최신화 중 |
+| 현재 브랜치 | `main` |
+| Git 상태 | QueryDSL 전환 merge 후 다음 작업 준비 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `feature/inventory-domain` |
-| 다음 추천 작업 | `feature/inventory-querydsl-search` |
+| 마지막 완료 작업 | `feature/inventory-querydsl-search` |
+| 다음 추천 작업 | `feature/order-domain` |
 
 ## 완료 작업
 
@@ -39,41 +39,25 @@
 | 18 | `feature/audit-user-tracking` | JPA Auditing 기반 `created_by`, `updated_by` 자동 입력 | `23-audit-user-tracking.md` |
 | 19 | `docs/defer-admin-action-log` | 관리자 작업 로그 보류 결정과 추후 범위 정리 | `15-project-progress.md`, `07-roadmap.md` |
 | 20 | `feature/inventory-domain` | location 단위 재고 도메인, 총수량/작업수량/가용수량 구조, 현재고 조회 API 추가 | `25-inventory-domain.md` |
+| 21 | `feature/inventory-querydsl-search` | 현재고 동적 검색을 QueryDSL custom repository 구조로 전환 | `27-inventory-querydsl-search.md` |
 
 ## 현재 진행 작업
 
-현재 진행 중인 작업은 재고 도메인 인수인계 문서와 PetOps workflow skill 최신화입니다.
+현재 진행 중인 구현 작업은 없습니다.
 
 ```text
-docs/update-inventory-handoff
+main
 ```
 
-목표:
+현재 상태:
 
-- `feature/inventory-domain` 완료 내용을 프로젝트 문서에 반영
-- QueryDSL 전환 작업을 별도 브랜치로 분리한 이유 기록
-- 다음 작업 기준을 `feature/inventory-querydsl-search`로 정리
-- 사용자가 `마무리요약`이라고 요청했을 때의 문서/skill 최신화 절차를 skill에 반영
-
+- `feature/inventory-querydsl-search` merge 완료
+- QueryDSL 전환 문서 반영 완료
+- 다음 구현 작업은 주문 도메인
+- 재고 수량 변경 프로세스는 주문 도메인 이후 별도 브랜치로 진행
 ## 다음 추천 작업
 
-### 1. Inventory QueryDSL 검색 전환
-
-브랜치:
-
-```text
-feature/inventory-querydsl-search
-```
-
-목표:
-
-- QueryDSL 의존성과 annotation processor 설정 추가
-- `StockRepository`의 `@Query` 기반 동적 조건 조회를 QueryDSL custom repository로 전환
-- `StockSearchCondition` 같은 검색 조건 DTO 추가
-- productId, warehouseId, locationId 조건을 명시적인 BooleanExpression 조합으로 정리
-- 재고 관리자 조회 조건 확장에 대비
-
-### 2. 주문 도메인
+### 1. 주문 도메인
 
 브랜치:
 
@@ -86,10 +70,11 @@ feature/order-domain
 - 주문 Entity 작성
 - 주문 상품 Entity 작성
 - 주문 생성 API 작성
-- 주문 생성 시 상품/회원/재고 검증 흐름 설계
+- 주문 생성 시 회원/상품 검증 흐름 설계
+- 주문 금액 계산 흐름 작성
 - 재고 할당, PICK, 출고 프로세스로 이어지는 경계 정리
 
-### 3. 재고 수량 변경 프로세스
+### 2. 재고 수량 변경 프로세스
 
 브랜치 후보:
 
@@ -105,7 +90,7 @@ feature/inventory-stock-workflow
 - 재고 변경 이력 저장
 - 동시성 충돌 검토
 
-### 4. API 문서화
+### 3. API 문서화
 
 브랜치:
 
@@ -116,9 +101,8 @@ chore/openapi-docs
 목표:
 
 - Swagger/OpenAPI 설정
-- Health/Member/Auth/Product/Inventory API 문서화
+- Health/Member/Auth/Product/Inventory/Order API 문서화
 - 이후 API 추가 시 문서 자동 확인 흐름 적용
-
 ## 보류 작업
 
 | 작업 | 보류 이유 | 추후 브랜치 후보 |
@@ -163,24 +147,25 @@ AdminActionLogService 추가
 
 ## 다음 세션 시작 기준
 
-QueryDSL 전환 작업은 아래 상태로 이어가면 됩니다.
+주문 도메인 작업은 아래 상태로 시작하면 됩니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
-현재 브랜치: feature/inventory-querydsl-search
-현재 상태: git status clean, origin/feature/inventory-querydsl-search 동기화 완료
-다음 작업: Inventory QueryDSL 검색 전환
+현재 브랜치: main
+현재 상태: git status clean, origin/main 동기화 완료
+다음 작업: feature/order-domain
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
 ```
 
-시작 확인 명령:
+시작 명령:
 
 ```powershell
 cd C:\pet-ops-commerce
-git checkout feature/inventory-querydsl-search
+git checkout main
+git pull
+git checkout -b feature/order-domain
 git status
 ```
-
 ## 검증 기준
 
 기본 검증:
