@@ -2,6 +2,8 @@ package com.petopscommerce;
 
 import com.petopscommerce.domain.inventory.repository.StockRepository;
 import com.petopscommerce.domain.member.repository.MemberRepository;
+import com.petopscommerce.domain.order.repository.OrderItemRepository;
+import com.petopscommerce.domain.order.repository.OrderRepository;
 import com.petopscommerce.domain.product.repository.ProductCategoryRepository;
 import com.petopscommerce.domain.product.repository.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,12 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private StockRepository stockRepository;
+
+    @MockitoBean
+    private OrderRepository orderRepository;
+
+    @MockitoBean
+    private OrderItemRepository orderItemRepository;
 
     @MockitoBean(name = "jpaMappingContext")
     private JpaMetamodelMappingContext jpaMappingContext;

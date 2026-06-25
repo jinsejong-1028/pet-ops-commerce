@@ -72,6 +72,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/products", "/api/v1/products/*").permitAll()
                         // TODO: 권한 세분화 시 재고 조회는 OPERATOR 이상으로 제한합니다.
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/stocks", "/api/v1/admin/stocks/*").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/orders").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
