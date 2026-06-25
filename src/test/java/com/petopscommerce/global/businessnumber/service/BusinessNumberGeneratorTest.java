@@ -6,17 +6,21 @@ import com.petopscommerce.global.businessnumber.entity.BusinessNumberRule;
 import com.petopscommerce.global.businessnumber.entity.BusinessNumberScopeType;
 import com.petopscommerce.global.businessnumber.entity.BusinessNumberType;
 import com.petopscommerce.global.businessnumber.repository.BusinessNumberRuleRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,8 +38,19 @@ class BusinessNumberGeneratorTest {
     @Mock
     private BusinessNumberRangeAllocator rangeAllocator;
 
-    @InjectMocks
     private BusinessNumberGenerator businessNumberGenerator;
+
+    /**
+     * - 테스트용 고정 시간 설정
+     */
+    @BeforeEach
+    void setUp() {
+        Clock fixedClock = Clock.fixed(
+                Instant.parse("2026-06-25T01:00:00Z"),
+                ZoneId.of("Asia/Seoul")
+        );
+        businessNumberGenerator = new BusinessNumberGenerator(ruleRepository, rangeAllocator, fixedClock);
+    }
 
     /**
      * - ORDER 번호 포맷 검증
@@ -53,12 +68,11 @@ class BusinessNumberGeneratorTest {
                 "-",
                 100
         );
-        LocalDateTime now = LocalDateTime.of(2026, 6, 25, 10, 0);
 
         when(ruleRepository.findByCodeAndEnabledTrue("ORDER")).thenReturn(Optional.of(rule));
         when(rangeAllocator.allocate(rule, "GLOBAL", "20260625")).thenReturn(new BusinessNumberRange(1L, 100L));
 
-        String businessNumber = businessNumberGenerator.generate(BusinessNumberType.ORDER, null, now);
+        String businessNumber = businessNumberGenerator.generate(BusinessNumberType.ORDER);
 
         assertThat(businessNumber).isEqualTo("ORD-20260625-000001");
     }
@@ -79,20 +93,35 @@ class BusinessNumberGeneratorTest {
                 "-",
                 2
         );
-        LocalDateTime now = LocalDateTime.of(2026, 6, 25, 10, 0);
 
         when(ruleRepository.findByCodeAndEnabledTrue("ORDER")).thenReturn(Optional.of(rule));
         when(rangeAllocator.allocate(rule, "GLOBAL", "20260625"))
                 .thenReturn(new BusinessNumberRange(1L, 2L))
                 .thenReturn(new BusinessNumberRange(3L, 4L));
 
-        String first = businessNumberGenerator.generate(BusinessNumberType.ORDER, null, now);
-        String second = businessNumberGenerator.generate(BusinessNumberType.ORDER, null, now);
-        String third = businessNumberGenerator.generate(BusinessNumberType.ORDER, null, now);
+        String first = businessNumberGenerator.generate(BusinessNumberType.ORDER);
+        String second = businessNumberGenerator.generate(BusinessNumberType.ORDER);
+        String third = businessNumberGenerator.generate(BusinessNumberType.ORDER);
 
         assertThat(first).isEqualTo("ORD-20260625-000001");
         assertThat(second).isEqualTo("ORD-20260625-000002");
         assertThat(third).isEqualTo("ORD-20260625-000003");
         verify(rangeAllocator, times(2)).allocate(rule, "GLOBAL", "20260625");
+    }
+
+    /**
+     * - 기본 rule 자동 생성 검증
+     */
+    @Test
+    @DisplayName("활성 rule이 없으면 기본 rule을 생성한 뒤 번호를 생성한다")
+    void generateOrderNumberWithDefaultRule() {
+        when(ruleRepository.findByCodeAndEnabledTrue("ORDER")).thenReturn(Optional.empty());
+        when(ruleRepository.save(any(BusinessNumberRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(rangeAllocator.allocate(any(BusinessNumberRule.class), eq("GLOBAL"), eq("20260625")))
+                .thenReturn(new BusinessNumberRange(1L, 100L));
+
+        String businessNumber = businessNumberGenerator.generate(BusinessNumberType.ORDER);
+
+        assertThat(businessNumber).isEqualTo("ORD-20260625-000001");
     }
 }

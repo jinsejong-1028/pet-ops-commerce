@@ -19,6 +19,8 @@
 - `business_number_rules` 테이블 추가
 - `business_number_sequences` 테이블 추가
 - 주문번호 기본 rule seed 추가
+- `BusinessNumberType` 기본 rule 정보 추가
+- 기본 rule 자동 보장 로직 추가
 - 업무 번호 Entity/Repository 추가
 - `BusinessNumberRangeAllocator` 추가
 - `BusinessNumberGenerator` 추가
@@ -29,6 +31,7 @@
 ## 번호 규칙 테이블
 
 `business_number_rules`는 번호의 모양을 관리합니다.
+BusinessNumberType도 기본 rule 값을 가지고 있어, rule이 없으면 generator가 기본 rule을 생성합니다.
 
 | 컬럼 | 의미 |
 |---|---|
@@ -162,6 +165,8 @@ user1 -> EXM-000002
 ## 주문 도메인 적용
 
 `OrderService`는 더 이상 직접 주문번호를 만들지 않습니다.
+개발자는 업무 번호 유형만 넘기고, 기준 시각과 rule 보장은 generator 내부에서 처리합니다.
+기준 시각은 `Clock` bean에서 가져오므로 테스트에서는 고정 Clock으로 날짜를 제어할 수 있습니다.
 
 ```text
 OrderService
@@ -171,6 +176,97 @@ OrderService
 
 이렇게 하면 결제번호, 출고번호, 재고이동번호도 같은 생성기를 재사용할 수 있습니다.
 
+## 생성기 책임 정리
+
+`BusinessNumberGenerator`의 외부 호출 API는 업무 번호 유형만 받습니다.
+
+```text
+BusinessNumberGenerator.generate(ORDER)
+```
+
+서비스 계층은 기준 시각, scope key, sequence period, rule 생성 여부를 직접 알 필요가 없습니다.
+이 정보는 생성기 내부에서 처리합니다.
+
+정리된 책임:
+
+- 서비스는 업무 번호 유형만 전달
+- 생성기는 `Clock` 기준 현재 시각 확정
+- 생성기는 활성 rule 조회 또는 기본 rule 생성
+- 생성기는 scope/period 기준 cache key 생성
+- 생성기는 메모리 구간 또는 DB 신규 구간에서 순번 확보
+- 생성기는 prefix/date/sequence 규칙으로 최종 번호 생성
+
+테스트를 위해 실무에서 사용하지 않는 `generate(type, now)` 같은 public API는 두지 않습니다.
+시간 제어가 필요한 테스트는 `Clock` bean을 고정 Clock으로 교체해 처리합니다.
+
+## 수동 DB 확인 결과
+
+Docker PostgreSQL에서 실제 주문번호 생성 결과를 확인했습니다.
+
+```sql
+select code, prefix, date_format, sequence_width, reset_cycle, scope_type, allocation_size
+from business_number_rules;
+```
+
+확인 결과:
+
+```text
+ORDER / ORD / yyyyMMdd / 6 / DAILY / GLOBAL / 100
+```
+
+주문 생성 결과:
+
+```text
+ORD-20260625-000001
+ORD-20260625-000002
+ORD-20260625-000101
+ORD-20260625-000102
+```
+
+`allocation_size`가 100이므로 서버 재실행 후 메모리에 남은 `3~100` 구간은 사라지고, 다음 DB 구간인 `101~200`을 확보하는 것이 정상입니다.
+
+`business_number_sequences` 확인 결과:
+
+```text
+rule_code: ORDER
+scope_key: GLOBAL
+sequence_period: 20260625
+next_value: 201
+version: 2
+```
+
+`next_value = 201`은 다음 구간 할당 시 `201~300`부터 확보한다는 뜻입니다.
+`version`은 JPA `@Version` 동시성 제어 값이며, 업무 번호 자체의 현재값이 아닙니다.
+
+## 동시성 테스트 계획
+
+현재 구현은 `BusinessNumberSequenceRepository.findForUpdate()`에서 `PESSIMISTIC_WRITE`를 사용합니다.
+따라서 같은 `ORDER + GLOBAL + 날짜` row에 여러 요청이 동시에 접근하면 DB가 한 요청씩 순서대로 구간을 할당합니다.
+
+다음 브랜치에서 아래 흐름을 검증합니다.
+
+```text
+test/business-number-concurrency
+```
+
+검증 후보:
+
+- `allocation_size = 1`로 낮춘 뒤 여러 주문 요청 동시 실행
+- `orders.order_no` 중복 여부 조회
+- `business_number_sequences.next_value` 증가 확인
+- 필요 시 사용자 승인 후 동시성 통합 테스트 추가
+
+중복 확인 쿼리:
+
+```sql
+select order_no, count(*)
+from orders
+where order_no like 'ORD-20260625%'
+group by order_no
+having count(*) > 1;
+```
+
+결과가 0건이면 주문번호 중복이 없는 상태입니다.
 ## 검증 방법
 
 자동 테스트:
@@ -186,3 +282,5 @@ OrderService
 - 0 padding 순번 생성
 - 할당 구간 캐시 동작
 - 주문 생성 시 공통 generator 사용
+- rule이 없을 때 기본 rule 생성
+- `Clock` 기반 기준 시각 사용
