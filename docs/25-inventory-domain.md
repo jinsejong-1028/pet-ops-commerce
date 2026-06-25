@@ -174,6 +174,39 @@ lotId 존재 여부
 lot.productId와 요청 productId 일치 여부
 ```
 
+
+## QueryDSL 검색 전환
+
+현재고 목록 조회는 QueryDSL custom repository로 전환했습니다.
+
+기존 1차 구현은 `@Query`에서 아래처럼 null 조건을 직접 처리했습니다.
+
+```text
+:param is null or field = :param
+```
+
+이번 전환 후에는 검색 조건을 `StockSearchCondition`으로 묶고, 조건별 `BooleanExpression`을 조합합니다.
+
+```text
+StockService
+-> StockSearchCondition
+-> StockRepository.searchStocks(condition)
+-> StockRepositoryImpl
+-> QueryDSL BooleanExpression 조합
+```
+
+이 구조를 쓰면 관리자 재고 검색 조건이 늘어날 때 Repository method가 폭발하지 않고, 조건 메서드를 하나씩 추가할 수 있습니다.
+
+추가된 구조:
+
+```text
+StockSearchCondition
+StockRepositoryCustom
+StockRepositoryImpl
+```
+
+QueryDSL Q class는 Gradle annotation processor가 생성합니다.
+생성 파일은 `build/generated/sources/annotationProcessor/java/main` 아래에 생기며 Git에는 커밋하지 않습니다.
 ## 검증 방법
 
 자동 테스트:
@@ -197,7 +230,7 @@ http/inventory-api.http
 
 ## 다음 작업 후보
 
-다음 브랜치에서는 현재 구조 위에 수량 변경 흐름을 추가합니다.
+QueryDSL 전환 이후에는 현재 구조 위에 수량 변경 흐름을 추가합니다.
 
 ```text
 POST /api/v1/admin/stocks/allocate

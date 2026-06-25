@@ -1,6 +1,7 @@
 package com.petopscommerce.domain.inventory.service;
 
 import com.petopscommerce.domain.inventory.dto.StockResponse;
+import com.petopscommerce.domain.inventory.dto.StockSearchCondition;
 import com.petopscommerce.domain.inventory.entity.Stock;
 import com.petopscommerce.domain.inventory.repository.StockRepository;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,9 @@ public class StockService {
      * @return 현재고 응답 목록
      */
     public List<StockResponse> getStocks(Long productId, Long warehouseId, Long locationId) {
-        return stockRepository.findStocks(productId, warehouseId, locationId).stream()
+        StockSearchCondition condition = new StockSearchCondition(productId, warehouseId, locationId);
+
+        return stockRepository.searchStocks(condition).stream()
                 .map(StockResponse::from)
                 .toList();
     }
