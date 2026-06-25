@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -188,6 +189,18 @@ class ProductControllerTest {
     }
 
     /**
+     * - 일반 회원 상품 생성 차단 검증
+     */
+    @Test
+    @DisplayName("일반 회원은 상품 생성 API 호출 시 403을 반환한다")
+    void createProductWithMemberRole() throws Exception {
+        mockMvc.perform(post("/api/v1/products")
+                        .with(memberJwt())
+                        .contentType("application/json")
+                        .content("{\"categoryId\":1,\"name\":\"고양이 사료\",\"description\":\"실내묘용 건식 사료\",\"price\":25000}"))
+                .andExpect(status().isForbidden());
+    }
+    /**
      * - 테스트용 관리자 JWT
      * - 상품/카테고리 생성 인증 통과용
      *
@@ -198,6 +211,19 @@ class ProductControllerTest {
                 .subject("1")
                 .claim("email", "admin@example.com")
                 .claim("role", "ADMIN")
-        );
+        ).authorities(new SimpleGrantedAuthority("ROLE_ADMIN"));
+    }
+    /**
+     * - 테스트용 일반 회원 JWT
+     * - 관리자 API 권한 차단 확인용
+     *
+     * @return mock JWT 요청 설정
+     */
+    private RequestPostProcessor memberJwt() {
+        return jwt().jwt(jwt -> jwt
+                .subject("2")
+                .claim("email", "user@example.com")
+                .claim("role", "MEMBER")
+        ).authorities(new SimpleGrantedAuthority("ROLE_MEMBER"));
     }
 }

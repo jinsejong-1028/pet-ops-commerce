@@ -36,7 +36,7 @@ JWT 로그인 사용자
 
 이번 브랜치에서는 아래 작업을 하지 않습니다.
 
-- 회원 상태 `INACTIVE` 검증
+- 활성 상태가 아닌 회원 검증
 - 재고 할당
 - PICKTO location 이동
 - 출고 처리
@@ -44,7 +44,7 @@ JWT 로그인 사용자
 - 쿠폰 할인
 
 회원 상태 검증은 인증 도메인의 책임입니다.
-`INACTIVE` 회원 로그인 차단은 별도 브랜치에서 보강합니다.
+`SUSPENDED`, `WITHDRAWN` 회원은 로그인 단계에서 차단합니다.
 
 ```text
 fix/auth-member-status-check
