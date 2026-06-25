@@ -79,6 +79,18 @@ order_items.product_id 컬럼 있음
 Service에서 상품 존재 여부 검증
 ```
 
+## 주문번호 생성 기준
+
+주문번호는 공통 업무 번호 생성기에서 생성합니다.
+
+```text
+BusinessNumberGenerator
+-> ORDER rule
+-> ORD-yyyyMMdd-000001
+```
+
+번호 규칙과 현재 순번은 DB에서 관리하고, 애플리케이션은 번호 구간을 한 번에 확보해 사용합니다.
+상세 설계는 `31-business-number-generator.md`에 정리합니다.
 ## 주문 금액 기준
 
 주문 상품은 상품 현재 가격을 주문 당시 가격으로 복사해서 저장합니다.

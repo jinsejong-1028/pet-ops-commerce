@@ -11,6 +11,8 @@ import com.petopscommerce.domain.order.repository.OrderRepository;
 import com.petopscommerce.domain.product.entity.Product;
 import com.petopscommerce.domain.product.entity.ProductSaleStatus;
 import com.petopscommerce.domain.product.repository.ProductRepository;
+import com.petopscommerce.global.businessnumber.entity.BusinessNumberType;
+import com.petopscommerce.global.businessnumber.service.BusinessNumberGenerator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -48,6 +52,9 @@ class OrderServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private BusinessNumberGenerator businessNumberGenerator;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -64,6 +71,7 @@ class OrderServiceTest {
         ReflectionTestUtils.setField(product, "id", 1L);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(businessNumberGenerator.generate(eq(BusinessNumberType.ORDER), isNull(), any(LocalDateTime.class))).thenReturn("ORD-20260625-000001");
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             ReflectionTestUtils.setField(order, "id", 100L);
@@ -82,6 +90,7 @@ class OrderServiceTest {
 
         assertThat(response.id()).isEqualTo(100L);
         assertThat(response.memberId()).isEqualTo(5L);
+        assertThat(response.orderNo()).isEqualTo("ORD-20260625-000001");
         assertThat(response.status()).isEqualTo(OrderStatus.CREATED);
         assertThat(response.totalAmount()).isEqualTo(50000);
         assertThat(response.discountAmount()).isZero();

@@ -6,6 +6,8 @@ import com.petopscommerce.domain.order.repository.OrderItemRepository;
 import com.petopscommerce.domain.order.repository.OrderRepository;
 import com.petopscommerce.domain.product.repository.ProductCategoryRepository;
 import com.petopscommerce.domain.product.repository.ProductRepository;
+import com.petopscommerce.global.businessnumber.repository.BusinessNumberRuleRepository;
+import com.petopscommerce.global.businessnumber.repository.BusinessNumberSequenceRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
@@ -36,6 +38,12 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private OrderItemRepository orderItemRepository;
+
+    @MockitoBean
+    private BusinessNumberRuleRepository businessNumberRuleRepository;
+
+    @MockitoBean
+    private BusinessNumberSequenceRepository businessNumberSequenceRepository;
 
     @MockitoBean(name = "jpaMappingContext")
     private JpaMetamodelMappingContext jpaMappingContext;
