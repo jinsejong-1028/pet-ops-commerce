@@ -197,7 +197,28 @@ http/inventory-api.http
 
 ## 다음 작업 후보
 
-다음 브랜치에서는 현재 구조 위에 수량 변경 흐름을 추가합니다.
+### 1. QueryDSL 검색 전환
+
+이번 브랜치의 현재고 조회는 1차 구현으로 `@Query` 기반 동적 조건 조회를 사용했습니다.
+조건이 적은 초기 단계에서는 이해하기 쉽지만, 관리자 재고 검색은 앞으로 조건이 늘어날 가능성이 큽니다.
+
+다음 브랜치에서는 QueryDSL로 전환합니다.
+
+```text
+feature/inventory-querydsl-search
+```
+
+전환 목표:
+
+- `@Query` 기반 동적 조건 조회 제거
+- QueryDSL 의존성과 annotation processor 설정 추가
+- `StockRepositoryCustom`, `StockRepositoryImpl` 추가
+- `StockSearchCondition`으로 검색 조건을 구조화
+- productId, warehouseId, locationId 조건을 BooleanExpression으로 분리
+
+### 2. 재고 수량 변경 흐름
+
+QueryDSL 전환 후에는 현재 구조 위에 수량 변경 흐름을 추가합니다.
 
 ```text
 POST /api/v1/admin/stocks/allocate
