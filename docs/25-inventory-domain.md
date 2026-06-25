@@ -110,6 +110,7 @@ PICKTO:  total 0,  working 0, available 0
 재고 API의 운영 목표 권한은 `OPERATOR` 이상입니다.
 다만 현재 프로젝트는 역할별 matcher를 아직 세분화하지 않았으므로, 이번 구현에서는 로그인 인증이 있는 사용자만 접근하도록 제한합니다.
 역할별 권한 제한은 추후 Admin/Operator 인가 작업에서 분리합니다.
+
 ## API 목록
 
 ### 현재고 목록 조회
@@ -207,6 +208,7 @@ StockRepositoryImpl
 
 QueryDSL Q class는 Gradle annotation processor가 생성합니다.
 생성 파일은 `build/generated/sources/annotationProcessor/java/main` 아래에 생기며 Git에는 커밋하지 않습니다.
+
 ## 검증 방법
 
 자동 테스트:
@@ -230,11 +232,17 @@ http/inventory-api.http
 
 ## 다음 작업 후보
 
-QueryDSL 전환 이후에는 현재 구조 위에 수량 변경 흐름을 추가합니다.
+QueryDSL 전환 이후에는 현재 구조 위에 재고 수량 변경 흐름을 추가합니다.
 
 ```text
 POST /api/v1/admin/stocks/allocate
 POST /api/v1/admin/stocks/pick
 POST /api/v1/admin/stocks/outbound
 POST /api/v1/admin/stocks/adjustment
+```
+
+후보 브랜치:
+
+```text
+feature/inventory-stock-workflow
 ```
