@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-06-26 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `test/business-number-concurrency` |
-| Git 상태 | 업무 번호 동시성 통합 테스트 완료 후 PR 준비 중 |
+| 현재 브랜치 | `feature/inventory-stock-workflow` |
+| Git 상태 | 재고 작업/이동 원장과 할당/PICK/출고 API 구현 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `refactor/business-number-generator-responsibility` |
-| 다음 추천 작업 | `feature/inventory-stock-workflow` |
+| 마지막 완료 작업 | `test/business-number-concurrency` |
+| 다음 추천 작업 | `chore/openapi-docs` |
 
 ## 완료 작업
 
@@ -45,50 +45,36 @@
 | 24 | `refactor/business-number-generator` | DB 기반 업무 번호 생성기와 주문번호 공통화 추가 | `31-business-number-generator.md` |
 | 25 | `refactor/business-number-generator-responsibility` | 업무 번호 생성기 책임 정리와 테스트용 API 제거 | `31-business-number-generator.md`, `32-development-log-2026-06-25.md` |
 | 26 | `test/business-number-concurrency` | Testcontainers PostgreSQL 기반 업무 번호 구간 할당 동시성 검증 추가 | `31-business-number-generator.md`, `33-development-log-2026-06-26.md` |
+| 27 | `feature/inventory-stock-workflow` | stock_jobs/stock_movements 기반 재고 할당, PICKTO 이동, 출고 API 추가 | `25-inventory-domain.md`, `34-development-log-2026-06-26.md` |
 
 ## 현재 진행 작업
 
 현재 진행 중인 브랜치:
 
 ```text
-test/business-number-concurrency
+feature/inventory-stock-workflow
 ```
 
 현재 상태:
 
-- Testcontainers PostgreSQL 의존성 추가
-- `BusinessNumberRangeAllocatorConcurrencyTest` 추가
-- `allocationSize = 1` 테스트 rule로 20개 스레드 동시 구간 할당 검증
-- `PESSIMISTIC_WRITE` 기반 row lock으로 `1~20` 구간이 중복 없이 할당되는지 확인
-- `business_number_sequences.next_value`가 `21`로 이동하는지 확인
+- 기존 `stock_histories` 제거
+- `stock_jobs` 작업 헤더 추가
+- `stock_movements` 재고 이동 원장 추가
+- 재고 할당 API 추가
+- PICKTO 이동 API 추가
+- 출고 API 추가
 - 전체 테스트 통과
 - 문서 최신화 후 PR 예정
 
 주의:
 
-- 테스트 편의를 위한 운영 service API는 추가하지 않았습니다.
-- 실제 PostgreSQL lock 동작 검증을 위해 H2가 아니라 Testcontainers PostgreSQL을 사용합니다.
-- Docker가 실행 가능한 환경에서 테스트가 동작합니다.
+- `stock_jobs`는 작업 현재 상태를 관리합니다.
+- `stock_movements`는 모든 재고 증감/이동의 append-only 원장입니다.
+- 재고조정/재고이동/입고는 같은 원장 구조로 확장할 수 있습니다.
 
 ## 다음 추천 작업
 
-### 1. 재고 수량 변경 프로세스
-
-브랜치 후보:
-
-```text
-feature/inventory-stock-workflow
-```
-
-목표:
-
-- 재고 할당 API 작성
-- PICKTO location 이동 API 작성
-- 출고 처리 API 작성
-- 재고 변경 이력 저장
-- 동시성 충돌 검토
-
-### 2. API 문서화
+### 1. API 문서화
 
 브랜치 후보:
 
@@ -146,13 +132,13 @@ AdminActionLogService 추가
 
 ## 다음 세션 시작 기준
 
-현재 브랜치 PR merge 후 재고 수량 변경 프로세스 작업은 아래 상태로 시작하면 됩니다.
+현재 브랜치 PR merge 후 API 문서화 작업은 아래 상태로 시작하면 됩니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
 현재 브랜치: main
 현재 상태: git status clean, origin/main 동기화 완료
-다음 작업: feature/inventory-stock-workflow
+다음 작업: chore/openapi-docs
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
 ```
 
@@ -162,7 +148,7 @@ AdminActionLogService 추가
 cd C:\pet-ops-commerce
 git checkout main
 git pull
-git checkout -b feature/inventory-stock-workflow
+git checkout -b chore/openapi-docs
 git status
 ```
 
