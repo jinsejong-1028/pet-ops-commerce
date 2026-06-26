@@ -9,10 +9,10 @@
 | 기준 날짜 | 2026-06-26 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `feature/inventory-stock-workflow` |
-| Git 상태 | 재고 작업/이동 원장과 할당/PICK/출고 API 구현 중 |
+| 현재 브랜치 | `feature/inventory-admin-stock-command` |
+| Git 상태 | 창고/location/입고성 현재고 생성과 재고 operation 공통화 구현 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `test/business-number-concurrency` |
+| 마지막 완료 작업 | `feature/inventory-stock-workflow` |
 | 다음 추천 작업 | `chore/openapi-docs` |
 
 ## 완료 작업
@@ -46,24 +46,26 @@
 | 25 | `refactor/business-number-generator-responsibility` | 업무 번호 생성기 책임 정리와 테스트용 API 제거 | `31-business-number-generator.md`, `32-development-log-2026-06-25.md` |
 | 26 | `test/business-number-concurrency` | Testcontainers PostgreSQL 기반 업무 번호 구간 할당 동시성 검증 추가 | `31-business-number-generator.md`, `33-development-log-2026-06-26.md` |
 | 27 | `feature/inventory-stock-workflow` | stock_jobs/stock_movements 기반 재고 할당, PICKTO 이동, 출고 API 추가 | `25-inventory-domain.md`, `34-development-log-2026-06-26.md` |
+| 28 | `feature/inventory-admin-stock-command` | 창고/location/입고성 현재고 생성 API와 재고 수량 변경 공통 서비스 추가 | `25-inventory-domain.md`, `35-development-log-2026-06-26.md` |
 
 ## 현재 진행 작업
 
 현재 진행 중인 브랜치:
 
 ```text
-feature/inventory-stock-workflow
+feature/inventory-admin-stock-command
 ```
 
 현재 상태:
 
-- 기존 `stock_histories` 제거
-- `stock_jobs` 작업 헤더 추가
-- `stock_movements` 재고 이동 원장 추가
-- 재고 할당 API 추가
-- PICKTO 이동 API 추가
-- 출고 API 추가
-- 전체 테스트 통과
+- 창고 생성 API 추가
+- location 생성 API 추가
+- LOT 생성/조회 기반 입고성 현재고 생성 API 추가
+- 수동 재고 조정 API 추가
+- 가용수량 기준 location 재고 이동 API 추가
+- 재고 할당, PICKTO 이동, 출고 흐름을 `StockOperationService`로 공통화
+- PICKTO 도착 현재고가 없을 때 0 row를 만들지 않고 실제 이동 수량으로 바로 생성하도록 수정
+- HTTP Client 수동 테스트 완료
 - 문서 최신화 후 PR 예정
 
 주의:
@@ -71,7 +73,7 @@ feature/inventory-stock-workflow
 - `stock_jobs`는 작업 현재 상태를 관리합니다.
 - `stock_movements`는 모든 재고 증감/이동의 append-only 원장입니다.
 - 재고조정/재고이동/입고는 같은 원장 구조로 확장할 수 있습니다.
-
+- 재고 이동 도착 row가 없으면 양수 delta로만 신규 생성하고, 음수 delta는 재고 부족 오류로 처리합니다.
 ## 다음 추천 작업
 
 ### 1. API 문서화

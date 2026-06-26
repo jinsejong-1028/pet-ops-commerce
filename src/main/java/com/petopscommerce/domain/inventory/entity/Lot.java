@@ -25,6 +25,13 @@ public class Lot extends BaseAuditEntity {
     private Long id;
 
     /**
+     * - LOT 업무 식별 번호
+     * - 사용자가 LOT를 화면/문서에서 확인할 때 사용하는 값
+     */
+    @Column(name = "lot_key", nullable = false, unique = true, length = 50)
+    private String lotKey;
+
+    /**
      * - 상품 ID
      * - DB FK 제약 대신 Service에서 존재 여부 검증
      */
@@ -70,7 +77,8 @@ public class Lot extends BaseAuditEntity {
         // JPA 기본 생성자
     }
 
-    private Lot(Long productId, String lot1, String lot2, LocalDate lot3, LocalDate lot4, String lot5, LotStatus status) {
+    private Lot(String lotKey, Long productId, String lot1, String lot2, LocalDate lot3, LocalDate lot4, String lot5, LotStatus status) {
+        this.lotKey = lotKey;
         this.productId = productId;
         this.lot1 = lot1;
         this.lot2 = lot2;
@@ -84,6 +92,7 @@ public class Lot extends BaseAuditEntity {
      * - 신규 LOT 생성
      * - 기본 상태 ACTIVE
      *
+     * @param lotKey LOT 업무 식별 번호
      * @param productId 상품 ID
      * @param lot1 LOT 주요 식별값
      * @param lot2 LOT 보조 정보
@@ -92,12 +101,16 @@ public class Lot extends BaseAuditEntity {
      * @param lot5 기타 관리값
      * @return 신규 LOT Entity
      */
-    public static Lot create(Long productId, String lot1, String lot2, LocalDate lot3, LocalDate lot4, String lot5) {
-        return new Lot(productId, lot1, lot2, lot3, lot4, lot5, LotStatus.ACTIVE);
+    public static Lot create(String lotKey, Long productId, String lot1, String lot2, LocalDate lot3, LocalDate lot4, String lot5) {
+        return new Lot(lotKey, productId, lot1, lot2, lot3, lot4, lot5, LotStatus.ACTIVE);
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getLotKey() {
+        return lotKey;
     }
 
     public Long getProductId() {

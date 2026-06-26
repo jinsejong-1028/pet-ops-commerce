@@ -25,7 +25,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
  * - 현재고 Service 테스트
- * - location 단위 재고 조회와 가용수량 계산 검증
+ * - location 단위 재고 조회와 저장된 가용수량 응답 검증
  */
 @ExtendWith(MockitoExtension.class)
 class StockServiceTest {
@@ -37,7 +37,7 @@ class StockServiceTest {
     private StockService stockService;
 
     /**
-     * - 현재고 목록 조회와 가용수량 계산 검증
+     * - 현재고 목록 조회와 저장된 가용수량 응답 검증
      */
     @Test
     @DisplayName("조건에 맞는 현재고 목록을 조회하고 가용수량을 계산한다")
@@ -45,6 +45,7 @@ class StockServiceTest {
         Stock stock = Stock.create(1L, 2L, 3L, 4L, 100, 10);
         ReflectionTestUtils.setField(stock, "id", 5L);
         ReflectionTestUtils.setField(stock, "workingQuantity", 3);
+        ReflectionTestUtils.setField(stock, "availableQuantity", 97);
         ReflectionTestUtils.setField(stock, "createdAt", LocalDateTime.of(2026, 6, 24, 10, 0));
         when(stockRepository.searchStocks(argThat(condition -> matchesCondition(condition, 1L, 2L, 3L))))
                 .thenReturn(List.of(stock));

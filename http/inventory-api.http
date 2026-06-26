@@ -1,5 +1,5 @@
 ### Login for inventory management
-# 현재고 조회는 로그인 JWT가 필요합니다.
+# 현재고/창고/location 관리 API는 OPERATOR 이상 JWT가 필요합니다.
 POST http://localhost:8080/api/v1/auth/login
 Content-Type: application/json
 
@@ -11,6 +11,95 @@ Content-Type: application/json
 > {% client.global.set("accessToken", response.body.data.accessToken); %}
 
 
+### Create warehouse
+# 재고를 보관할 창고를 생성합니다.
+POST http://localhost:8080/api/v1/admin/warehouses
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "code": "WH-SEOUL",
+  "name": "Seoul Main Warehouse"
+}
+
+
+### Create NOMAL location
+# 이번 테스트에서는 입고 후 바로 적치된 일반 location을 생성합니다.
+POST http://localhost:8080/api/v1/admin/locations
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "warehouseId": 1,
+  "code": "A-01-01",
+  "name": "A Rack 01-01",
+  "locationType": "NOMAL"
+}
+
+
+
+### Create STAGE location
+# 실제 입고 흐름에서는 입고 대기장 location을 먼저 사용할 수 있습니다.
+# 이번 테스트 흐름에서는 바로 NOMAL location에 입고하므로 필요할 때만 실행합니다.
+POST http://localhost:8080/api/v1/admin/locations
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "warehouseId": 1,
+  "code": "STAGE-01",
+  "name": "Inbound Staging 01",
+  "locationType": "STAGE"
+}
+
+### Create PICKTO location
+# 피킹 후 출고 전 대기할 PICKTO location을 생성합니다.
+POST http://localhost:8080/api/v1/admin/locations
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "warehouseId": 1,
+  "code": "PICKTO-01",
+  "name": "Picking Staging 01",
+  "locationType": "PICKTO"
+}
+
+
+### Receive stock
+# 입고 확정처럼 LOT를 찾거나 생성하고 현재고를 생성/증가합니다.
+# lot4가 null이면 서버 기준 오늘 날짜로 저장합니다.
+POST http://localhost:8080/api/v1/admin/stocks
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "productId": 1,
+  "warehouseId": 1,
+  "locationId": 2,
+  "lot1": "BATCH-20260626-A",
+  "lot2": "SUPPLIER-A",
+  "lot3": "2027-06-26",
+  "lot4": null,
+  "lot5": "NORMAL",
+  "quantity": 100,
+  "reason": "initial inbound stock"
+}
+
+
+### Adjust stock
+# ADJUST는 quantity 부호로 증감합니다. 음수 차감은 availableQuantity 기준으로 검증합니다.
+POST http://localhost:8080/api/v1/admin/stocks/adjust
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "stockId": 1,
+  "quantity": -3,
+  "reason": "manual inventory adjustment"
+}
+
+
 ### Get stocks
 # location 단위 현재고 목록을 조회합니다.
 GET http://localhost:8080/api/v1/admin/stocks
@@ -19,7 +108,7 @@ Authorization: Bearer {{accessToken}}
 
 ### Get stocks by product, warehouse, location
 # 상품/창고/location 조건으로 현재고 목록을 조회합니다.
-GET http://localhost:8080/api/v1/admin/stocks?productId=1&warehouseId=1&locationId=1
+GET http://localhost:8080/api/v1/admin/stocks?productId=1&warehouseId=1&locationId=2
 Authorization: Bearer {{accessToken}}
 
 
@@ -49,8 +138,8 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "jobId": 1,
-  "picktoLocationId": 2,
+  "jobId": 5,
+  "picktoLocationId": 4,
   "quantity": 2,
   "reason": "pick to outbound staging"
 }
@@ -63,7 +152,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "jobId": 1,
+  "jobId": 5,
   "quantity": 2,
   "reason": "shipment completed"
 }

@@ -22,4 +22,13 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
      * @return location Optional
      */
     Optional<Location> findByIdAndLocationTypeAndStatus(Long id, LocationType locationType, LocationStatus status);
+
+    /**
+     * - 창고 안 location 코드 중복 확인
+     *
+     * @param warehouseId 창고 ID
+     * @param code location 코드
+     * @return 존재 여부
+     */
+    boolean existsByWarehouseIdAndCode(Long warehouseId, String code);
 }

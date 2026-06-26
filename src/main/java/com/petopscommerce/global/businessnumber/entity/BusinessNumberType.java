@@ -15,7 +15,10 @@ public enum BusinessNumberType {
     SHIPMENT("SHP", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),
 
     /** - 재고 이동 번호 */
-    STOCK_MOVE("STM", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100);
+    STOCK_MOVE("STM", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),
+
+    /** - LOT 식별 번호 */
+    LOT("LOT", null, 8, BusinessNumberResetCycle.NONE, BusinessNumberScopeType.GLOBAL, "", 100);
 
     private final String defaultPrefix;
     private final String defaultDateFormat;

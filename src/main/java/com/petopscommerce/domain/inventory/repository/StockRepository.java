@@ -25,7 +25,7 @@ public interface StockRepository extends JpaRepository<Stock, Long>, StockReposi
 
     /**
      * - location 단위 현재고 조회
-     * - PICKTO 입고 시 기존 현재고 재사용 여부 확인
+     * - 조회/응답에서 기존 현재고 존재 여부 확인
      *
      * @param productId 상품 ID
      * @param warehouseId 창고 ID
@@ -34,4 +34,17 @@ public interface StockRepository extends JpaRepository<Stock, Long>, StockReposi
      * @return 현재고 Optional
      */
     Optional<Stock> findByProductIdAndWarehouseIdAndLocationIdAndLotId(Long productId, Long warehouseId, Long locationId, Long lotId);
+
+    /**
+     * - location 단위 현재고 잠금 조회
+     * - 입고/이동 도착 시 기존 현재고를 안전하게 증가시키기 위해 사용
+     *
+     * @param productId 상품 ID
+     * @param warehouseId 창고 ID
+     * @param locationId location ID
+     * @param lotId LOT ID
+     * @return 현재고 Optional
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Stock> findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(Long productId, Long warehouseId, Long locationId, Long lotId);
 }
