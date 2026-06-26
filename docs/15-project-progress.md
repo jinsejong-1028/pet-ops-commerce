@@ -6,14 +6,14 @@
 
 | 항목 | 상태 |
 |---|---|
-| 기준 날짜 | 2026-06-25 |
+| 기준 날짜 | 2026-06-26 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `refactor/business-number-generator-responsibility` |
-| Git 상태 | 업무 번호 생성기 책임 정리 후 PR 준비 중 |
+| 현재 브랜치 | `test/business-number-concurrency` |
+| Git 상태 | 업무 번호 동시성 통합 테스트 완료 후 PR 준비 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `refactor/business-number-generator` |
-| 다음 추천 작업 | `test/business-number-concurrency` |
+| 마지막 완료 작업 | `refactor/business-number-generator-responsibility` |
+| 다음 추천 작업 | `feature/inventory-stock-workflow` |
 
 ## 완료 작업
 
@@ -43,49 +43,36 @@
 | 22 | `feature/order-domain` | 주문/주문상품 도메인과 주문 생성 API 추가 | `29-order-domain.md` |
 | 23 | `fix/auth-member-status-check` | 비활성 회원 로그인 차단과 URL 권한 정책 정리 | `30-auth-security-policy.md` |
 | 24 | `refactor/business-number-generator` | DB 기반 업무 번호 생성기와 주문번호 공통화 추가 | `31-business-number-generator.md` |
+| 25 | `refactor/business-number-generator-responsibility` | 업무 번호 생성기 책임 정리와 테스트용 API 제거 | `31-business-number-generator.md`, `32-development-log-2026-06-25.md` |
+| 26 | `test/business-number-concurrency` | Testcontainers PostgreSQL 기반 업무 번호 구간 할당 동시성 검증 추가 | `31-business-number-generator.md`, `33-development-log-2026-06-26.md` |
 
 ## 현재 진행 작업
 
 현재 진행 중인 브랜치:
 
 ```text
-refactor/business-number-generator-responsibility
+test/business-number-concurrency
 ```
 
 현재 상태:
 
-- `BusinessNumberGenerator` public API를 `generate(type)` 중심으로 정리
-- 기준 시각은 `Clock` bean으로 내부 처리
-- `BusinessNumberType`에 기본 rule 정보를 두고, rule이 없으면 generator가 생성
-- 주문 서비스는 업무 번호 유형만 전달
-- 주석은 업무 흐름 중심으로 재정리
-- 자동 테스트와 주문 API 수동 확인 완료
+- Testcontainers PostgreSQL 의존성 추가
+- `BusinessNumberRangeAllocatorConcurrencyTest` 추가
+- `allocationSize = 1` 테스트 rule로 20개 스레드 동시 구간 할당 검증
+- `PESSIMISTIC_WRITE` 기반 row lock으로 `1~20` 구간이 중복 없이 할당되는지 확인
+- `business_number_sequences.next_value`가 `21`로 이동하는지 확인
+- 전체 테스트 통과
 - 문서 최신화 후 PR 예정
 
 주의:
 
-- 테스트 편의를 위해 실무 API와 맞지 않는 함수는 추가하지 않습니다.
-- 테스트 코드는 필요성이 있을 때 먼저 제안하고, 사용자 승인 후 작성합니다.
-- HTTP Client나 URL 기반 수동 테스트 안내는 기존처럼 진행합니다.
+- 테스트 편의를 위한 운영 service API는 추가하지 않았습니다.
+- 실제 PostgreSQL lock 동작 검증을 위해 H2가 아니라 Testcontainers PostgreSQL을 사용합니다.
+- Docker가 실행 가능한 환경에서 테스트가 동작합니다.
 
 ## 다음 추천 작업
 
-### 1. 업무 번호 동시성 테스트
-
-브랜치 후보:
-
-```text
-test/business-number-concurrency
-```
-
-목표:
-
-- `allocation_size = 1` 기준 수동 동시 요청 검증
-- 주문번호 중복 여부 DB 조회
-- `BusinessNumberRangeAllocator`의 PostgreSQL row lock 검증 방안 정리
-- 필요 시 사용자 승인 후 동시성 통합 테스트 추가
-
-### 2. 재고 수량 변경 프로세스
+### 1. 재고 수량 변경 프로세스
 
 브랜치 후보:
 
@@ -101,9 +88,9 @@ feature/inventory-stock-workflow
 - 재고 변경 이력 저장
 - 동시성 충돌 검토
 
-### 3. API 문서화
+### 2. API 문서화
 
-브랜치:
+브랜치 후보:
 
 ```text
 chore/openapi-docs
@@ -159,13 +146,13 @@ AdminActionLogService 추가
 
 ## 다음 세션 시작 기준
 
-현재 브랜치 PR merge 후 동시성 테스트 작업은 아래 상태로 시작하면 됩니다.
+현재 브랜치 PR merge 후 재고 수량 변경 프로세스 작업은 아래 상태로 시작하면 됩니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
 현재 브랜치: main
 현재 상태: git status clean, origin/main 동기화 완료
-다음 작업: test/business-number-concurrency
+다음 작업: feature/inventory-stock-workflow
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
 ```
 
@@ -175,7 +162,7 @@ AdminActionLogService 추가
 cd C:\pet-ops-commerce
 git checkout main
 git pull
-git checkout -b test/business-number-concurrency
+git checkout -b feature/inventory-stock-workflow
 git status
 ```
 

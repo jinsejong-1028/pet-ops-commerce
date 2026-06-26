@@ -27,6 +27,7 @@
 - `OrderService` 주문번호 생성 로직 교체
 - 업무 번호 생성기 테스트 추가
 - 주문 Service 테스트 수정
+- 업무 번호 구간 할당 동시성 통합 테스트 추가
 
 ## 번호 규칙 테이블
 
@@ -238,35 +239,34 @@ version: 2
 `next_value = 201`은 다음 구간 할당 시 `201~300`부터 확보한다는 뜻입니다.
 `version`은 JPA `@Version` 동시성 제어 값이며, 업무 번호 자체의 현재값이 아닙니다.
 
-## 동시성 테스트 계획
+## 동시성 통합 테스트
 
 현재 구현은 `BusinessNumberSequenceRepository.findForUpdate()`에서 `PESSIMISTIC_WRITE`를 사용합니다.
-따라서 같은 `ORDER + GLOBAL + 날짜` row에 여러 요청이 동시에 접근하면 DB가 한 요청씩 순서대로 구간을 할당합니다.
+따라서 같은 `rule_code + scope_key + sequence_period` row에 여러 요청이 동시에 접근하면 PostgreSQL이 한 트랜잭션씩 순서대로 구간을 할당합니다.
 
-다음 브랜치에서 아래 흐름을 검증합니다.
+이 동작은 Testcontainers PostgreSQL 기반 통합 테스트로 검증합니다.
+H2 같은 인메모리 DB는 PostgreSQL row lock 동작과 차이가 있을 수 있으므로, 실제 PostgreSQL 컨테이너를 테스트 중 자동으로 띄웁니다.
+
+테스트 대상:
 
 ```text
-test/business-number-concurrency
+BusinessNumberRangeAllocatorConcurrencyTest
 ```
 
-검증 후보:
+검증 흐름:
 
-- `allocation_size = 1`로 낮춘 뒤 여러 주문 요청 동시 실행
-- `orders.order_no` 중복 여부 조회
-- `business_number_sequences.next_value` 증가 확인
-- 필요 시 사용자 승인 후 동시성 통합 테스트 추가
-
-중복 확인 쿼리:
-
-```sql
-select order_no, count(*)
-from orders
-where order_no like 'ORD-20260625%'
-group by order_no
-having count(*) > 1;
+```text
+allocationSize = 1인 테스트 rule 생성
+20개 스레드 동시 시작
+각 스레드가 같은 sequence row에 구간 할당 요청
+PostgreSQL PESSIMISTIC_WRITE row lock으로 순차 처리
+1~20 시작값이 중복 없이 할당되는지 확인
+business_number_sequences.next_value = 21 확인
 ```
 
-결과가 0건이면 주문번호 중복이 없는 상태입니다.
+이 테스트는 운영 service API를 테스트 편의용으로 바꾸지 않습니다.
+`BusinessNumberRangeAllocator`의 실제 public method와 PostgreSQL row lock을 그대로 사용합니다.
+
 ## 검증 방법
 
 자동 테스트:
@@ -284,3 +284,4 @@ having count(*) > 1;
 - 주문 생성 시 공통 generator 사용
 - rule이 없을 때 기본 rule 생성
 - `Clock` 기반 기준 시각 사용
+- PostgreSQL row lock 기반 구간 할당 동시성
