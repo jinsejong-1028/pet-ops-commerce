@@ -4,7 +4,7 @@ POST http://localhost:8080/api/v1/auth/login
 Content-Type: application/json
 
 {
-  "email": "user2@example.com",
+  "email": "admin@example.com",
   "password": "password123"
 }
 
@@ -27,3 +27,43 @@ Authorization: Bearer {{accessToken}}
 # 현재고 단건을 조회합니다.
 GET http://localhost:8080/api/v1/admin/stocks/1
 Authorization: Bearer {{accessToken}}
+### Allocate stock
+# 주문 출고를 위해 현재고를 할당합니다.
+POST http://localhost:8080/api/v1/admin/stocks/allocate
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "stockId": 1,
+  "orderId": 1,
+  "orderItemId": 1,
+  "quantity": 2,
+  "reason": "order allocation"
+}
+
+
+### Pick stock to PICKTO
+# 할당된 재고를 PICKTO location으로 이동합니다.
+POST http://localhost:8080/api/v1/admin/stocks/pick
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "jobId": 1,
+  "picktoLocationId": 2,
+  "quantity": 2,
+  "reason": "pick to outbound staging"
+}
+
+
+### Outbound stock
+# PICKTO location의 재고를 실제 출고 처리합니다.
+POST http://localhost:8080/api/v1/admin/stocks/outbound
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "jobId": 1,
+  "quantity": 2,
+  "reason": "shipment completed"
+}

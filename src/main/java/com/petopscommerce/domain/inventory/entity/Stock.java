@@ -118,6 +118,76 @@ public class Stock extends BaseAuditEntity {
         return totalQuantity - workingQuantity;
     }
 
+
+    /**
+     * - 재고 할당
+     * - 물리 총수량은 유지하고 작업수량만 증가
+     *
+     * @param quantity 할당 수량
+     */
+    public void allocate(Integer quantity) {
+        validatePositiveQuantity(quantity);
+
+        if (getAvailableQuantity() < quantity) {
+            throw new IllegalArgumentException("available stock is not enough");
+        }
+
+        this.workingQuantity += quantity;
+    }
+
+    /**
+     * - PICK 출발 처리
+     * - 보관 location에서 총수량과 작업수량을 함께 감소
+     *
+     * @param quantity PICK 수량
+     */
+    public void pickOut(Integer quantity) {
+        validatePositiveQuantity(quantity);
+
+        if (workingQuantity < quantity || totalQuantity < quantity) {
+            throw new IllegalArgumentException("picked stock is not enough");
+        }
+
+        this.totalQuantity -= quantity;
+        this.workingQuantity -= quantity;
+    }
+
+    /**
+     * - PICKTO 입고 처리
+     * - PICKTO location에 총수량과 작업수량을 함께 증가
+     *
+     * @param quantity PICKTO 이동 수량
+     */
+    public void pickIn(Integer quantity) {
+        validatePositiveQuantity(quantity);
+
+        this.totalQuantity += quantity;
+        this.workingQuantity += quantity;
+    }
+
+    /**
+     * - 출고 처리
+     * - PICKTO location에서 총수량과 작업수량을 함께 감소
+     *
+     * @param quantity 출고 수량
+     */
+    public void shipOut(Integer quantity) {
+        validatePositiveQuantity(quantity);
+
+        if (workingQuantity < quantity || totalQuantity < quantity) {
+            throw new IllegalArgumentException("shipping stock is not enough");
+        }
+
+        this.totalQuantity -= quantity;
+        this.workingQuantity -= quantity;
+    }
+
+    private void validatePositiveQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException("quantity must be positive");
+        }
+    }
+
     public Long getId() {
         return id;
     }

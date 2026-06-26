@@ -1,5 +1,8 @@
 package com.petopscommerce;
 
+import com.petopscommerce.domain.inventory.repository.LocationRepository;
+import com.petopscommerce.domain.inventory.repository.StockJobRepository;
+import com.petopscommerce.domain.inventory.repository.StockMovementRepository;
 import com.petopscommerce.domain.inventory.repository.StockRepository;
 import com.petopscommerce.domain.member.repository.MemberRepository;
 import com.petopscommerce.domain.order.repository.OrderItemRepository;
@@ -32,6 +35,15 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private StockRepository stockRepository;
+
+    @MockitoBean
+    private LocationRepository locationRepository;
+
+    @MockitoBean
+    private StockJobRepository stockJobRepository;
+
+    @MockitoBean
+    private StockMovementRepository stockMovementRepository;
 
     @MockitoBean
     private OrderRepository orderRepository;

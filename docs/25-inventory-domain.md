@@ -209,6 +209,139 @@ StockRepositoryImpl
 QueryDSL Q class는 Gradle annotation processor가 생성합니다.
 생성 파일은 `build/generated/sources/annotationProcessor/java/main` 아래에 생기며 Git에는 커밋하지 않습니다.
 
+
+## 재고 작업/이동 원장 구조
+
+재고 수량 변경은 `stock_jobs`와 `stock_movements`로 관리합니다.
+기존 `stock_histories`는 단일 수량 컬럼 기준 이력이어서 `total_quantity`, `working_quantity` 구조와 맞지 않아 제거하고, 이동 원장 구조로 대체합니다.
+
+```text
+stock_jobs
+= 작업 헤더, 현재 상태
+
+stock_movements
+= 재고 증감/이동 원장, append-only 이력
+```
+
+`stock_jobs`는 출고, 입고, 조정, 이동 같은 작업 묶음의 현재 상태를 관리합니다.
+운영 화면에서 "이 작업이 어디까지 진행됐는지" 확인하는 기준입니다.
+
+```text
+job_no
+job_type
+warehouse_id
+reference_type
+reference_id
+status
+reason
+```
+
+`stock_movements`는 실제 stock row의 수량 변화 내역을 누적합니다.
+`quantity`는 해당 location 기준 증감 방향을 부호로 표현하고, `total_quantity_delta`, `working_quantity_delta`로 어떤 수량 컬럼이 바뀌었는지 남깁니다.
+
+```text
+movement_type
+location_id
+from_location_id
+to_location_id
+product_id
+lot_id
+quantity
+total_quantity_delta
+working_quantity_delta
+```
+
+예시:
+
+```text
+ALLOCATE
+- quantity: 3
+- total_quantity_delta: 0
+- working_quantity_delta: +3
+
+PICK_OUT
+- quantity: -3
+- total_quantity_delta: -3
+- working_quantity_delta: -3
+
+PICK_IN
+- quantity: +3
+- total_quantity_delta: +3
+- working_quantity_delta: +3
+
+SHIP_OUT
+- quantity: -3
+- total_quantity_delta: -3
+- working_quantity_delta: -3
+```
+
+## 재고 작업 API
+
+### 재고 할당
+
+```text
+POST /api/v1/admin/stocks/allocate
+```
+
+처리:
+
+```text
+STORAGE stock
+- total_quantity 유지
+- working_quantity 증가
+
+stock_jobs
+- SALES_SHIPMENT 작업 생성
+- status = ALLOCATED
+
+stock_movements
+- ALLOCATE 원장 생성
+```
+
+### PICKTO 이동
+
+```text
+POST /api/v1/admin/stocks/pick
+```
+
+처리:
+
+```text
+source stock
+- total_quantity 감소
+- working_quantity 감소
+
+PICKTO stock
+- total_quantity 증가
+- working_quantity 증가
+
+stock_jobs
+- status = PICKED
+
+stock_movements
+- PICK_OUT 원장 생성
+- PICK_IN 원장 생성
+```
+
+### 출고
+
+```text
+POST /api/v1/admin/stocks/outbound
+```
+
+처리:
+
+```text
+PICKTO stock
+- total_quantity 감소
+- working_quantity 감소
+
+stock_jobs
+- status = SHIPPED
+
+stock_movements
+- SHIP_OUT 원장 생성
+```
 ## 검증 방법
 
 자동 테스트:
