@@ -275,14 +275,14 @@ erDiagram
 
 ```text
 할당
-- STORAGE location에서 주문에 사용할 재고를 찜
+- NOMAL location에서 주문에 사용할 재고를 찜
 - total_quantity 유지
 - working_quantity 증가
 - available_quantity 감소
 
 PICK
-- STORAGE location에서 PICKTO location으로 재고 이동
-- STORAGE location: total_quantity 감소, working_quantity 감소
+- NOMAL location에서 PICKTO location으로 재고 이동
+- NOMAL location: total_quantity 감소, working_quantity 감소
 - PICKTO location: total_quantity 증가, working_quantity 증가
 - 창고 전체 총수량은 유지
 

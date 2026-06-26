@@ -78,6 +78,41 @@ public class StockJob extends BaseAuditEntity {
     }
 
     /**
+     * - 입고용 재고 작업 생성
+     *
+     * @param jobNo 재고 작업 번호
+     * @param warehouseId 창고 ID
+     * @param reason 작업 사유
+     * @return 신규 재고 작업
+     */
+    public static StockJob createInbound(String jobNo, Long warehouseId, String reason) {
+        return new StockJob(jobNo, StockJobType.INBOUND, warehouseId, StockReferenceType.MANUAL, null, StockJobStatus.SHIPPED, reason);
+    }
+
+    /**
+     * - 수동 재고 조정 작업 생성
+     *
+     * @param jobNo 재고 작업 번호
+     * @param warehouseId 창고 ID
+     * @param reason 작업 사유
+     * @return 신규 재고 작업
+     */
+    public static StockJob createAdjustment(String jobNo, Long warehouseId, String reason) {
+        return new StockJob(jobNo, StockJobType.ADJUSTMENT, warehouseId, StockReferenceType.ADJUSTMENT, null, StockJobStatus.SHIPPED, reason);
+    }
+
+    /**
+     * - location 간 재고 이동 작업 생성
+     *
+     * @param jobNo 재고 작업 번호
+     * @param warehouseId 창고 ID
+     * @param reason 작업 사유
+     * @return 신규 재고 작업
+     */
+    public static StockJob createTransfer(String jobNo, Long warehouseId, String reason) {
+        return new StockJob(jobNo, StockJobType.TRANSFER, warehouseId, StockReferenceType.TRANSFER, null, StockJobStatus.SHIPPED, reason);
+    }
+    /**
      * - PICKTO 이동 완료 상태로 변경
      */
     public void markPicked() {

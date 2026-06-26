@@ -69,6 +69,9 @@ public class StockMovement {
     @Column(name = "total_quantity_delta", nullable = false)
     private Integer totalQuantityDelta;
 
+    @Column(name = "available_quantity_delta", nullable = false)
+    private Integer availableQuantityDelta;
+
     @Column(name = "working_quantity_delta", nullable = false)
     private Integer workingQuantityDelta;
 
@@ -87,7 +90,7 @@ public class StockMovement {
         // JPA 기본 생성자
     }
 
-    private StockMovement(Long jobId, String jobNo, Long stockId, StockMovementType movementType, Long warehouseId, Long locationId, Long fromLocationId, Long toLocationId, Long productId, Long lotId, Integer quantity, Integer totalQuantityDelta, Integer workingQuantityDelta, String reason) {
+    private StockMovement(Long jobId, String jobNo, Long stockId, StockMovementType movementType, Long warehouseId, Long locationId, Long fromLocationId, Long toLocationId, Long productId, Long lotId, Integer quantity, Integer totalQuantityDelta, Integer availableQuantityDelta, Integer workingQuantityDelta, String reason) {
         this.jobId = jobId;
         this.jobNo = jobNo;
         this.stockId = stockId;
@@ -100,6 +103,7 @@ public class StockMovement {
         this.lotId = lotId;
         this.quantity = quantity;
         this.totalQuantityDelta = totalQuantityDelta;
+        this.availableQuantityDelta = availableQuantityDelta;
         this.workingQuantityDelta = workingQuantityDelta;
         this.reason = reason;
     }
@@ -114,11 +118,12 @@ public class StockMovement {
      * @param toLocationId 도착 location ID
      * @param quantity location 기준 증감 수량
      * @param totalQuantityDelta 총수량 변화량
+     * @param availableQuantityDelta 가용수량 변화량
      * @param workingQuantityDelta 작업수량 변화량
      * @param reason 작업 사유
      * @return 신규 재고 이동 원장
      */
-    public static StockMovement create(StockJob job, Stock stock, StockMovementType movementType, Long fromLocationId, Long toLocationId, Integer quantity, Integer totalQuantityDelta, Integer workingQuantityDelta, String reason) {
+    public static StockMovement create(StockJob job, Stock stock, StockMovementType movementType, Long fromLocationId, Long toLocationId, Integer quantity, Integer totalQuantityDelta, Integer availableQuantityDelta, Integer workingQuantityDelta, String reason) {
         return new StockMovement(
                 job.getId(),
                 job.getJobNo(),
@@ -132,6 +137,7 @@ public class StockMovement {
                 stock.getLotId(),
                 quantity,
                 totalQuantityDelta,
+                availableQuantityDelta,
                 workingQuantityDelta,
                 reason
         );
@@ -187,6 +193,10 @@ public class StockMovement {
 
     public Integer getTotalQuantityDelta() {
         return totalQuantityDelta;
+    }
+
+    public Integer getAvailableQuantityDelta() {
+        return availableQuantityDelta;
     }
 
     public Integer getWorkingQuantityDelta() {

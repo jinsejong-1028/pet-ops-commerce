@@ -35,7 +35,7 @@
 |---|---|
 | `total_quantity` | 해당 location에 실제 존재하는 총수량 |
 | `working_quantity` | 할당/피킹/출고 작업 중이라 판매 가능하지 않은 수량 |
-| `available_quantity` | `total_quantity - working_quantity`로 계산하는 가용수량 |
+| `available_quantity` | 일반 증감/이동/할당에 사용할 수 있는 가용수량 |
 
 예시:
 
@@ -59,7 +59,8 @@ location 유형은 아래처럼 시작합니다.
 
 | 유형 | 의미 |
 |---|---|
-| `STORAGE` | 일반 보관 location |
+| `STAGE` | 입고 대기장 location |
+| `NOMAL` | 일반 보관 location |
 | `PICKTO` | 피킹 완료 후 출고 전 대기 location |
 
 ## 할당, PICK, 출고 흐름
@@ -68,14 +69,14 @@ location 유형은 아래처럼 시작합니다.
 
 ```text
 할당
-- STORAGE location에서 주문에 사용할 재고를 찜
+- NOMAL location에서 주문에 사용할 재고를 찜
 - total_quantity 유지
 - working_quantity 증가
 - available_quantity 감소
 
 PICK
-- STORAGE location에서 PICKTO location으로 재고 이동
-- STORAGE location: total_quantity 감소, working_quantity 감소
+- NOMAL location에서 PICKTO location으로 재고 이동
+- NOMAL location: total_quantity 감소, working_quantity 감소
 - PICKTO location: total_quantity 증가, working_quantity 증가
 - 창고 전체 총수량은 유지
 
@@ -286,7 +287,7 @@ POST /api/v1/admin/stocks/allocate
 처리:
 
 ```text
-STORAGE stock
+NOMAL stock
 - total_quantity 유지
 - working_quantity 증가
 
@@ -371,6 +372,7 @@ QueryDSL 전환 이후에는 현재 구조 위에 재고 수량 변경 흐름을
 POST /api/v1/admin/stocks/allocate
 POST /api/v1/admin/stocks/pick
 POST /api/v1/admin/stocks/outbound
+POST /api/v1/admin/stocks/transfer
 POST /api/v1/admin/stocks/adjustment
 ```
 
@@ -379,3 +381,86 @@ POST /api/v1/admin/stocks/adjustment
 ```text
 feature/inventory-stock-workflow
 ```
+
+## 관리자 재고 명령 API
+
+창고, location, 입고성 현재고 생성, 수동 조정 API를 추가했습니다.
+입고성 현재고 생성은 추후 입고 화면에서 입고 확정 시 사용할 수 있는 흐름을 기준으로 설계했습니다.
+
+```text
+POST /api/v1/admin/warehouses
+POST /api/v1/admin/locations
+POST /api/v1/admin/stocks
+POST /api/v1/admin/stocks/transfer
+POST /api/v1/admin/stocks/adjust
+```
+
+### 입고성 현재고 생성/증가
+
+`POST /api/v1/admin/stocks`는 단순 stock row 생성 API가 아닙니다.
+입고 확정처럼 LOT를 찾거나 생성하고, 동일 현재고가 있으면 기존 재고를 증가시킵니다.
+
+```text
+productId 검증
+warehouseId 검증
+locationId 검증
+lot4 null이면 오늘 날짜 적용
+productId + lot1~lot5 기준 LOT 조회
+LOT 없으면 lot_key 채번 후 생성
+productId + warehouseId + locationId + lotId 현재고 잠금 조회
+현재고 있으면 total/available 증가
+현재고 없으면 신규 stock 생성
+stock_jobs INBOUND 생성
+stock_movements RECEIVE_IN 저장
+```
+
+LOT 업무 번호는 공통 업무번호 생성기를 사용합니다. `BusinessNumberType.LOT` 기본값으로 rule이 자동 생성되므로 LOT rule은 migration seed로 넣지 않습니다.
+
+```text
+LOT00000001
+LOT00000002
+```
+
+### 수동 재고 조정
+
+`POST /api/v1/admin/stocks/transfer
+POST /api/v1/admin/stocks/adjust`는 `ADJUST` movement type을 하나만 사용하고, `quantity`의 부호로 증감 방향을 판단합니다.
+
+```text
+quantity > 0: total_quantity 증가, available_quantity 증가
+quantity < 0: available_quantity 기준 차감 검증 후 total_quantity 감소, available_quantity 감소
+quantity = 0: 오류
+```
+
+작업수량은 이미 할당 또는 피킹 중인 재고이므로 수동 조정 대상이 아닙니다.
+
+## StockOperationService 공통화
+
+재고 수량 변경 책임을 `StockOperationService`로 모았습니다.
+`StockWorkflowService`는 할당, PICK, 출고의 업무 순서와 job 상태만 관리하고, 실제 현재고 수량 변경과 원장 저장은 공통 서비스에 위임합니다.
+
+```text
+receive: 입고, total/available 증가
+reserve: 할당, available 감소 + working 증가
+moveWorkingToLocation: PICK, source working 차감 + PICKTO working 증가
+issueWorking: 출고, PICKTO working 차감
+adjust: 수동 조정, signed quantity 기준 total/available 증감
+```
+
+재고 이동은 from/to location의 수량 delta로 처리합니다.
+도착 현재고가 없을 때도 `quantity = 0` row를 먼저 만들지 않고, 실제 이동 수량만큼 바로 생성합니다.
+음수 delta인데 현재고가 없거나 수량이 부족하면 재고 부족 오류로 처리합니다.
+
+## 수량 컬럼 기준 변경
+
+가용수량은 계산값으로만 두지 않고 `stocks.available_quantity` 컬럼으로 저장합니다.
+운영 화면과 DB 조회에서 현재 재고 상태를 바로 확인하기 위한 선택입니다.
+
+```text
+total_quantity = working_quantity + available_quantity
+available_quantity >= 0
+working_quantity >= 0
+total_quantity >= 0
+```
+
+`stock_movements`에도 `available_quantity_delta`를 추가해 어떤 수량이 바뀌었는지 원장에 남깁니다.

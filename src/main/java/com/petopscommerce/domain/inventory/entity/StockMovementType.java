@@ -13,10 +13,8 @@ public enum StockMovementType {
     PICK_IN,
     /** - PICKTO에서 실제 출고되는 차감 */
     SHIP_OUT,
-    /** - 재고 조정 증가 */
-    ADJUST_IN,
-    /** - 재고 조정 차감 */
-    ADJUST_OUT,
+    /** - 수동 재고 조정, 수량 부호로 증감 구분 */
+    ADJUST,
     /** - location 이동 출발 */
     TRANSFER_OUT,
     /** - location 이동 도착 */

@@ -8,4 +8,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * - warehouses 테이블 CRUD 담당
  */
 public interface WarehouseRepository extends JpaRepository<Warehouse, Long> {
+
+    /**
+     * - 창고 코드 중복 확인
+     *
+     * @param code 창고 코드
+     * @return 존재 여부
+     */
+    boolean existsByCode(String code);
 }
