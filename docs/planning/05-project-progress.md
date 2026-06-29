@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-06-29 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `docs/reorganize-documentation` |
-| Git 상태 | 문서 폴더 구조 개편과 README 추가 중 |
+| 현재 브랜치 | `feature/order-fulfillment-workflow` |
+| Git 상태 | 주문 fulfillment workflow 구현 중, 커밋 전 dirty 상태 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `docs/update-current-project-docs` |
-| 다음 추천 작업 | `feature/order-fulfillment-workflow` |
+| 마지막 완료 작업 | `docs/reorganize-documentation` |
+| 다음 추천 작업 | `feature/order-fulfillment-workflow` 마무리 점검 후 PR |
 
 ## 완료 작업
 
@@ -42,25 +42,31 @@
 | 21 | `chore/squash-inventory-migrations` | Docker DB reset 전제 재고/주문/출고/입고 workflow migration 최종 schema 정리 | `docs/logs/2026-06-29.md` |
 | 22 | `fix/location-type-normal-typo` | location type 오타를 `NORMAL`로 수정 | `docs/domains/04-inventory-domain.md` |
 | 23 | `docs/update-current-project-docs` | 현재 migration, API, 재고, 주문 workflow 기준으로 프로젝트 문서 최신화 | `docs/architecture/02-erd.md`, `docs/api/01-api-spec.md`, `docs/planning/05-project-progress.md` |
+| 24 | `docs/reorganize-documentation` | 루트 README와 docs 하위 폴더 구조 정리 | `README.md`, `docs/README.md` |
 
 ## 현재 진행 작업
 
 현재 진행 중인 브랜치:
 
 ```text
-docs/reorganize-documentation
+feature/order-fulfillment-workflow
 ```
 
 목표:
 
-- 루트 README와 docs/README 문서 인덱스 추가
-- docs 하위 문서를 planning, architecture, api, infra, workflow, domains, common, logs로 분리
-- 하위 폴더 안에서 문서 번호를 01, 02 순서로 재정리
-- 같은 날짜의 development log를 날짜별 단일 파일로 통합
-- 주요 문서 경로와 인덱스 링크를 새 구조에 맞게 갱신
-- 문서 구조 개편 후 다음 작업 후보를 유지
+- 고객 주문 생성 시 `sales_orders`, `sales_order_items`를 `CREATED` 상태로 자동 생성
+- 관리자/오퍼레이터가 판매 주문을 `confirm` 또는 `cancel` 처리
+- 판매 주문 확정 시 `customer_orders`도 `CONFIRMED`로 변경
+- 판매 주문 확정 시 `shipment_orders`, `shipment_order_items` 생성
+- 출고 지시 기반 재고 할당/PICK/출고 workflow 연결 준비
 
-문서 작업만 진행하므로 전체 `gradlew test`는 실행하지 않습니다.
+현재 주의사항:
+
+- 이번 브랜치는 사용자가 마지막 Docker DB reset 예외를 명시한 상태입니다.
+- 이후 작업부터는 기존 migration 수정이 아니라 새 `V다음번호__...sql` migration 추가가 기본입니다.
+- migration에는 기존 데이터 보정용 `update/delete/임시 insert`를 넣지 않습니다.
+- 이전 세션에서 `src/test/**` 파일이 수정되었습니다. 다음 세션에서는 유지/원복 여부를 먼저 확인합니다.
+- Codex는 Gradle, Docker, bootRun 명령을 직접 실행하지 않고 사용자에게 명령만 안내합니다.
 
 ## 다음 추천 작업
 
@@ -110,25 +116,23 @@ chore/openapi-docs
 
 ## 다음 세션 시작 기준
 
-현재 브랜치 PR merge 후 주문 fulfillment workflow 작업은 아래 상태로 시작하면 됩니다.
+현재 브랜치는 커밋 전 dirty 상태이므로, 새 세션에서는 먼저 변경 파일을 리뷰합니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
-현재 브랜치: main
-현재 상태: git status clean, origin/main 동기화 완료
-다음 작업: feature/order-fulfillment-workflow
+현재 브랜치: feature/order-fulfillment-workflow
+현재 상태: 주문 fulfillment workflow 구현 중, git status dirty
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
+petops-portfolio-workflow skill 기준으로 진행
 ```
 
-시작 명령:
+첫 확인 항목:
 
-```powershell
-cd C:\pet-ops-commerce
-git checkout main
-git pull
-git checkout -b feature/order-fulfillment-workflow
-git status
-```
+- `git status --short --branch`
+- `src/test/**` 변경 유지/원복 여부
+- `V5__create_order_fulfillment_workflow.sql`은 이번 마지막 reset 예외로 유지할지 확인
+- `OrderService`의 판매 주문 자동 생성 흐름 리뷰
+- `SalesOrderService`의 confirm/cancel 흐름 리뷰
 
 ## 검증 기준
 
@@ -138,7 +142,7 @@ git status
 git diff --check
 ```
 
-코드 작업 기본 검증:
+코드 작업 기본 검증은 사용자가 직접 실행합니다:
 
 ```powershell
 .\gradlew.bat test --console=plain

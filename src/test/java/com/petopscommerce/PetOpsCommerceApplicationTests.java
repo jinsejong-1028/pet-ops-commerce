@@ -2,13 +2,17 @@ package com.petopscommerce;
 
 import com.petopscommerce.domain.inventory.repository.LocationRepository;
 import com.petopscommerce.domain.inventory.repository.LotRepository;
-import com.petopscommerce.domain.inventory.repository.WarehouseRepository;
 import com.petopscommerce.domain.inventory.repository.StockJobRepository;
 import com.petopscommerce.domain.inventory.repository.StockMovementRepository;
 import com.petopscommerce.domain.inventory.repository.StockRepository;
+import com.petopscommerce.domain.inventory.repository.WarehouseRepository;
 import com.petopscommerce.domain.member.repository.MemberRepository;
 import com.petopscommerce.domain.order.repository.OrderItemRepository;
 import com.petopscommerce.domain.order.repository.OrderRepository;
+import com.petopscommerce.domain.order.repository.SalesOrderItemRepository;
+import com.petopscommerce.domain.order.repository.SalesOrderRepository;
+import com.petopscommerce.domain.order.repository.ShipmentOrderItemRepository;
+import com.petopscommerce.domain.order.repository.ShipmentOrderRepository;
 import com.petopscommerce.domain.product.repository.ProductCategoryRepository;
 import com.petopscommerce.domain.product.repository.ProductRepository;
 import com.petopscommerce.global.businessnumber.repository.BusinessNumberRuleRepository;
@@ -58,6 +62,18 @@ class PetOpsCommerceApplicationTests {
 
     @MockitoBean
     private OrderItemRepository orderItemRepository;
+
+    @MockitoBean
+    private SalesOrderRepository salesOrderRepository;
+
+    @MockitoBean
+    private SalesOrderItemRepository salesOrderItemRepository;
+
+    @MockitoBean
+    private ShipmentOrderRepository shipmentOrderRepository;
+
+    @MockitoBean
+    private ShipmentOrderItemRepository shipmentOrderItemRepository;
 
     @MockitoBean
     private BusinessNumberRuleRepository businessNumberRuleRepository;

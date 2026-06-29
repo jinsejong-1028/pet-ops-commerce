@@ -39,8 +39,8 @@
 
 ## 고객 주문
 
-`orders`는 고객이 생성한 주문입니다.
-배송 정보는 `order_deliveries`로 분리해 관리합니다.
+`customer_orders`는 고객이 생성한 주문 테이블입니다.
+배송 정보는 `customer_order_deliveries`로 분리해 관리합니다.
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
@@ -50,7 +50,7 @@
 | POST | `/orders/{orderId}/cancel` | 주문 취소 | Member 예정 |
 
 현재 주문 생성 요청은 상품과 수량 중심입니다.
-배송 정보 입력은 `order_deliveries` 적용 브랜치에서 요청 DTO에 확장합니다.
+배송 정보 입력은 `customer_order_deliveries` 적용 브랜치에서 요청 DTO에 확장합니다.
 
 ```json
 {
@@ -66,16 +66,16 @@
 ## 판매/출고/구매/입고 업무 목표 API
 
 아래 API는 현재 schema 기준의 목표 흐름입니다.
-Service/Controller 구현은 후속 브랜치에서 진행합니다.
+고객 주문 생성 시 판매 주문은 CREATED 상태로 자동 생성됩니다. 판매 주문 확정 API는 고객 주문을 확정하고 출고 주문을 생성합니다. 출고 할당/피킹/출고 확정과 구매/입고 API는 후속 브랜치에서 진행합니다.
 
 ### 판매 주문
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| POST | `/admin/sales-orders` | 고객 주문을 내부 판매 주문으로 생성 | Operator 예정 |
-| POST | `/admin/sales-orders/{salesOrderId}/confirm` | 판매 주문 확정 | Operator 예정 |
-| POST | `/admin/sales-orders/{salesOrderId}/cancel` | 판매 주문 취소 | Operator 예정 |
+| POST | `/admin/sales-orders/{salesOrderId}/confirm` | 판매 주문 확정 및 출고 주문 생성 | Operator |
+| POST | `/admin/sales-orders/{salesOrderId}/cancel` | 판매 주문 취소 | Operator |
 | GET | `/admin/sales-orders` | 판매 주문 목록 조회 | Operator 예정 |
+
 
 ### 출고 지시
 

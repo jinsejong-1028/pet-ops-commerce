@@ -6,8 +6,12 @@ import com.petopscommerce.domain.order.dto.OrderResponse;
 import com.petopscommerce.domain.order.entity.Order;
 import com.petopscommerce.domain.order.entity.OrderItem;
 import com.petopscommerce.domain.order.entity.OrderStatus;
+import com.petopscommerce.domain.order.entity.SalesOrder;
+import com.petopscommerce.domain.order.entity.SalesOrderItem;
 import com.petopscommerce.domain.order.repository.OrderItemRepository;
 import com.petopscommerce.domain.order.repository.OrderRepository;
+import com.petopscommerce.domain.order.repository.SalesOrderItemRepository;
+import com.petopscommerce.domain.order.repository.SalesOrderRepository;
 import com.petopscommerce.domain.product.entity.Product;
 import com.petopscommerce.domain.product.entity.ProductSaleStatus;
 import com.petopscommerce.domain.product.repository.ProductRepository;
@@ -48,6 +52,12 @@ class OrderServiceTest {
     private OrderItemRepository orderItemRepository;
 
     @Mock
+    private SalesOrderRepository salesOrderRepository;
+
+    @Mock
+    private SalesOrderItemRepository salesOrderItemRepository;
+
+    @Mock
     private ProductRepository productRepository;
 
     @Mock
@@ -70,6 +80,7 @@ class OrderServiceTest {
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(businessNumberGenerator.generate(BusinessNumberType.ORDER)).thenReturn("ORD-20260625-000001");
+        when(businessNumberGenerator.generate(BusinessNumberType.SALES_ORDER)).thenReturn("SOR-20260625-000001");
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order order = invocation.getArgument(0);
             ReflectionTestUtils.setField(order, "id", 100L);
@@ -82,6 +93,16 @@ class OrderServiceTest {
             ReflectionTestUtils.setField(orderItems.get(0), "id", 1000L);
             ReflectionTestUtils.setField(orderItems.get(0), "createdAt", LocalDateTime.of(2026, 6, 25, 10, 0));
             return orderItems;
+        });
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> {
+            SalesOrder salesOrder = invocation.getArgument(0);
+            ReflectionTestUtils.setField(salesOrder, "id", 200L);
+            return salesOrder;
+        });
+        when(salesOrderItemRepository.saveAll(anyList())).thenAnswer(invocation -> {
+            List<SalesOrderItem> salesOrderItems = invocation.getArgument(0);
+            ReflectionTestUtils.setField(salesOrderItems.get(0), "id", 2000L);
+            return salesOrderItems;
         });
 
         OrderResponse response = orderService.createOrder(5L, request);

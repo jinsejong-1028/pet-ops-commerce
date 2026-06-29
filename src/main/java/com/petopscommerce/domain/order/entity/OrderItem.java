@@ -15,10 +15,10 @@ import java.time.LocalDateTime;
 
 /**
  * - 주문 상품 Entity
- * - order_items 테이블 매핑
+ * - customer_order_items 테이블 매핑
  */
 @Entity
-@Table(name = "order_items")
+@Table(name = "customer_order_items")
 @EntityListeners(AuditingEntityListener.class)
 public class OrderItem {
 
@@ -27,10 +27,10 @@ public class OrderItem {
     private Long id;
 
     /**
-     * - 주문 ID
+     * - 고객 주문 ID
      * - DB FK 제약 대신 Service 저장 흐름에서 연결
      */
-    @Column(name = "order_id", nullable = false)
+    @Column(name = "customer_order_id", nullable = false)
     private Long orderId;
 
     /**
@@ -59,7 +59,7 @@ public class OrderItem {
 
     /**
      * - 생성 일시
-     * - order_items 테이블은 수정 audit 컬럼이 없어 생성 audit만 직접 매핑
+     * - 현재 주문 상품 생성 응답에 필요한 생성 audit만 Entity에서 직접 사용
      */
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -88,7 +88,7 @@ public class OrderItem {
      * - 신규 주문 상품 생성
      * - 주문 당시 단가와 라인 금액을 스냅샷으로 저장
      *
-     * @param orderId 주문 ID
+     * @param orderId 고객 주문 ID
      * @param productId 상품 ID
      * @param quantity 주문 수량
      * @param unitPrice 주문 당시 상품 단가

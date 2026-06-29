@@ -1,0 +1,32 @@
+warning: in the working copy of 'docs/domains/06-order-domain.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/logs/2026-06-29.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/planning/05-project-progress.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'http/order-api.http', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/petopscommerce/domain/order/entity/Order.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/petopscommerce/domain/order/entity/OrderStatus.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/petopscommerce/domain/order/repository/OrderItemRepository.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main/java/com/petopscommerce/domain/order/service/OrderService.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/test/java/com/petopscommerce/PetOpsCommerceApplicationTests.java', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/test/java/com/petopscommerce/domain/order/service/OrderServiceTest.java', LF will be replaced by CRLF the next time Git touches it
+ docs/api/01-api-spec.md                            | 16 [32m++[m[31m--[m
+ docs/architecture/02-erd.md                        | 24 [32m+++[m[31m---[m
+ docs/domains/06-order-domain.md                    | 99 [32m+++++++++++++++++[m[31m-----[m
+ docs/infra/04-flyway-schema.md                     | 12 [32m+[m[31m--[m
+ docs/logs/2026-06-29.md                            | 28 [32m+++++[m[31m-[m
+ docs/planning/04-roadmap.md                        | 19 [32m+++[m[31m--[m
+ docs/planning/05-project-progress.md               | 54 [32m++++++[m[31m------[m
+ http/member-api.http                               |  2 [32m+[m[31m-[m
+ http/order-api.http                                | 39 [32m++++++++[m[31m-[m
+ http/product-api.http                              |  2 [32m+[m[31m-[m
+ .../petopscommerce/domain/order/entity/Order.java  | 41 [32m+++++++[m[31m--[m
+ .../domain/order/entity/OrderItem.java             | 12 [32m+[m[31m--[m
+ .../domain/order/entity/OrderStatus.java           |  9 [32m+[m[31m-[m
+ .../order/repository/OrderItemRepository.java      | 15 [32m+++[m[31m-[m
+ .../domain/order/repository/OrderRepository.java   |  2 [32m+[m[31m-[m
+ .../domain/order/service/OrderService.java         | 60 [32m++++++++++++[m[31m-[m
+ .../businessnumber/entity/BusinessNumberType.java  |  7 [32m+[m[31m-[m
+ .../resources/db/migration/V1__initial_schema.sql  | 60 [32m++++++[m[31m-------[m
+ .../V5__create_order_fulfillment_workflow.sql      | 11 [32m+[m[31m--[m
+ .../PetOpsCommerceApplicationTests.java            | 20 [32m++++[m[31m-[m
+ .../domain/order/service/OrderServiceTest.java     | 23 [32m++++[m[31m-[m
+ 21 files changed, 409 insertions(+), 146 deletions(-)

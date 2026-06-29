@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 
 /**
  * - 주문 Entity
- * - orders 테이블 매핑
+ * - customer_orders 테이블 매핑
  */
 @Entity
-@Table(name = "orders")
+@Table(name = "customer_orders")
 public class Order extends BaseAuditEntity {
 
     @Id
@@ -37,6 +37,14 @@ public class Order extends BaseAuditEntity {
      */
     @Column(name = "order_no", nullable = false, unique = true, length = 50)
     private String orderNo;
+
+    /**
+     * - 고객 주문 유형
+     * - 공통 코드 테이블 전까지 enum 문자열로 저장
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "order_type", nullable = false, length = 30)
+    private OrderType orderType;
 
     /**
      * - 주문 상태
@@ -74,9 +82,10 @@ public class Order extends BaseAuditEntity {
         // JPA 기본 생성자
     }
 
-    private Order(Long memberId, String orderNo, OrderStatus status, Integer totalAmount, Integer discountAmount, Integer paymentAmount, LocalDateTime orderedAt) {
+    private Order(Long memberId, String orderNo, OrderType orderType, OrderStatus status, Integer totalAmount, Integer discountAmount, Integer paymentAmount, LocalDateTime orderedAt) {
         this.memberId = memberId;
         this.orderNo = orderNo;
+        this.orderType = orderType;
         this.status = status;
         this.totalAmount = totalAmount;
         this.discountAmount = discountAmount;
@@ -86,7 +95,7 @@ public class Order extends BaseAuditEntity {
 
     /**
      * - 신규 주문 생성
-     * - 최초 상태 CREATED, 할인 금액 0
+     * - 고객 주문 유형 CUSTOMER_ORDER, 최초 상태 CREATED, 할인 금액 0
      *
      * @param memberId 로그인 회원 ID
      * @param orderNo 주문 번호
@@ -95,7 +104,23 @@ public class Order extends BaseAuditEntity {
      * @return 신규 주문 Entity
      */
     public static Order create(Long memberId, String orderNo, Integer totalAmount, LocalDateTime orderedAt) {
-        return new Order(memberId, orderNo, OrderStatus.CREATED, totalAmount, 0, totalAmount, orderedAt);
+        return new Order(memberId, orderNo, OrderType.CUSTOMER_ORDER, OrderStatus.CREATED, totalAmount, 0, totalAmount, orderedAt);
+    }
+
+    /**
+     * - 고객 주문 확정
+     * - 판매 주문 확정 시 고객 주문 상태도 함께 확정
+     */
+    public void confirm() {
+        this.status = OrderStatus.CONFIRMED;
+    }
+
+    /**
+     * - 고객 주문 취소
+     * - 판매 주문 취소 시 고객 주문 상태도 함께 취소
+     */
+    public void cancel() {
+        this.status = OrderStatus.CANCELED;
     }
 
     public Long getId() {
@@ -108,6 +133,10 @@ public class Order extends BaseAuditEntity {
 
     public String getOrderNo() {
         return orderNo;
+    }
+
+    public OrderType getOrderType() {
+        return orderType;
     }
 
     public OrderStatus getStatus() {
