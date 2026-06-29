@@ -9,7 +9,7 @@ public enum LocationType {
     STAGE,
 
     /** - 일반 보관 location */
-    NOMAL,
+    NORMAL,
 
     /** - 피킹 완료 후 출고 전 대기 location */
     PICKTO

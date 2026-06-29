@@ -55,6 +55,6 @@ HTTP Client 수동 테스트
 
 ```sql
 update locations
-set location_type = 'NOMAL'
+set location_type = 'NORMAL'
 where location_type = 'STORAGE';
 ```
