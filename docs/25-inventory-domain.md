@@ -213,7 +213,7 @@ QueryDSL Q class는 Gradle annotation processor가 생성합니다.
 ## 재고 작업/이동 원장 구조
 
 재고 수량 변경은 `stock_jobs`와 `stock_movements`로 관리합니다.
-기존 `stock_histories`는 단일 수량 컬럼 기준 이력이어서 `total_quantity`, `working_quantity` 구조와 맞지 않아 제거하고, 이동 원장 구조로 대체합니다.
+기존 단일 수량 이력 테이블은 `total_quantity`, `working_quantity` 구조와 맞지 않아 제거하고, 이동 원장 구조로 대체합니다.
 
 ```text
 stock_jobs
@@ -239,8 +239,15 @@ deleted_at
 ```
 
 `job_type`은 재고 작업 자체의 유형입니다.
-`reference_type`과 `reference_id`는 판매주문, 입고오더처럼 작업을 발생시킨 외부 업무가 있을 때만 사용합니다.
-따라서 현재 직접 입고, 수동 조정, 일반 location 이동처럼 외부 참조 업무가 없으면 둘 다 `null`로 둡니다.
+`reference_type`과 `reference_id`는 출고 지시, 입고 지시처럼 재고 작업을 발생시킨 외부 업무가 있을 때만 사용합니다.
+따라서 직접 입고, 수동 조정, 일반 location 이동처럼 외부 참조 업무가 없으면 둘 다 `null`로 둡니다.
+외부 업무 참조 기준:
+
+```text
+출고 지시 기반 작업: reference_type = SHIPMENT_ORDER, reference_id = shipment_orders.id
+입고 지시 기반 작업: reference_type = RECEIVING_ORDER, reference_id = receiving_orders.id
+직접 입고/수동 조정/일반 이동: reference_type = null, reference_id = null
+```
 
 `stock_movements`는 실제 stock row의 수량 변화 내역을 누적합니다.
 `quantity`는 이번 movement의 처리 수량이고, `total_quantity`는 movement 처리 후 해당 stock row의 총수량 snapshot입니다.
@@ -302,7 +309,7 @@ NORMAL stock
 - working_quantity 증가
 
 stock_jobs
-- SALES_SHIPMENT 작업 생성
+- SHIPMENT_ORDER 기반 작업 생성
 - status = ALLOCATED
 
 stock_movements
@@ -374,23 +381,24 @@ HTTP Client 확인:
 http/inventory-api.http
 ```
 
-## 다음 작업 후보
+## 현재 재고 API 요약
 
-QueryDSL 전환 이후에는 현재 구조 위에 재고 수량 변경 흐름을 추가합니다.
+현재 재고 도메인은 조회, 입고성 현재고 생성, 수동 조정, location 이동, 할당, PICK, 출고 API를 제공합니다.
 
 ```text
+GET  /api/v1/admin/stocks
+GET  /api/v1/admin/stocks/{stockId}
+POST /api/v1/admin/warehouses
+POST /api/v1/admin/locations
+POST /api/v1/admin/stocks
+POST /api/v1/admin/stocks/transfer
+POST /api/v1/admin/stocks/adjust
 POST /api/v1/admin/stocks/allocate
 POST /api/v1/admin/stocks/pick
 POST /api/v1/admin/stocks/outbound
-POST /api/v1/admin/stocks/transfer
-POST /api/v1/admin/stocks/adjustment
 ```
 
-후보 브랜치:
-
-```text
-feature/inventory-stock-workflow
-```
+후속 작업에서는 이 API를 출고 지시(`shipment_orders`)와 입고 지시(`receiving_orders`) workflow에 연결합니다.
 
 ## 관리자 재고 명령 API
 
@@ -434,8 +442,9 @@ LOT00000002
 
 ### 수동 재고 조정
 
-`POST /api/v1/admin/stocks/transfer
-POST /api/v1/admin/stocks/adjust`는 `ADJUST` movement type을 하나만 사용하고, `quantity`의 부호로 증감 방향을 판단합니다.
+`POST /api/v1/admin/stocks/adjust`는 `ADJUST` movement type을 하나만 사용하고, `quantity`의 부호로 증감 방향을 판단합니다.
+
+`POST /api/v1/admin/stocks/transfer`는 가용수량 기준 location 이동이며, `TRANSFER_OUT`/`TRANSFER_IN` movement를 남깁니다.
 
 ```text
 quantity > 0: total_quantity 증가, available_quantity 증가

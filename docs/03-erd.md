@@ -1,318 +1,134 @@
-# ERD 초안
+# ERD
 
 ## 설계 기준
 
 - DB 레벨 FK 제약은 걸지 않습니다.
 - `*_id` 컬럼과 인덱스로 논리 관계를 표현합니다.
 - 관계 검증은 서비스 로직과 테스트에서 처리합니다.
-- 주요 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`을 공통 audit 컬럼으로 둡니다.
-- LOT 정보는 `lot1` ~ `lot5`로 관리하고, 상세 의미는 문서와 comment로 설명합니다.
-- 재고는 `창고 -> location -> 상품/LOT 현재고` 순서로 관리합니다.
-- 재고 가용수량은 `stocks.available_quantity`로 저장하고 `total_quantity = available_quantity + working_quantity` 제약으로 관리합니다.
+- 주요 업무 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`을 공통 audit 컬럼으로 둡니다.
+- `orders`는 고객 주문입니다.
+- 판매 주문, 출고 지시, 구매 발주, 입고 지시는 별도 테이블로 분리합니다.
+- 현재고는 `창고 -> location -> 상품/LOT` 단위로 관리합니다.
+- 현재고 수량은 `total_quantity = available_quantity + working_quantity` 기준입니다.
+- 재고 증감/이동 이력은 `stock_jobs`와 `stock_movements` 원장 구조로 관리합니다.
 
-## 상품 소유 모델
-
-현재 ERD는 단일 운영사 B2C 커머스를 기준으로 합니다.
-
-- 상품은 운영사가 등록하고 관리합니다.
-- 회원은 상품을 판매하지 않고 구매합니다.
-- `products.category_id`는 상품 분류를 위한 논리 관계입니다.
-- `products`에는 `seller_id`, `vendor_id`, `company_id`를 두지 않습니다.
-
-입점 판매자형 마켓플레이스로 확장할 경우에는 `vendors` 또는 `stores` 테이블을 추가하고 `products.vendor_id` 같은 소유 주체 컬럼을 별도 설계합니다.
-
-## 핵심 엔티티
+## 핵심 관계
 
 ```mermaid
 erDiagram
   MEMBER ||--o{ PET_PROFILE : owns
   MEMBER ||--o{ ORDER : places
-
   PRODUCT_CATEGORY ||--o{ PRODUCT : contains
   PRODUCT ||--o{ LOT : has
-  PRODUCT ||--o{ ORDER_ITEM : ordered
   PRODUCT ||--o{ STOCK : stocked
-
-  LOT ||--o{ STOCK : grouped_by
+  PRODUCT ||--o{ ORDER_ITEM : ordered
   WAREHOUSE ||--o{ LOCATION : contains
   WAREHOUSE ||--o{ STOCK : holds
   LOCATION ||--o{ STOCK : stores
-  STOCK ||--o{ STOCK_HISTORY : records
-
+  LOT ||--o{ STOCK : grouped_by
+  ORDER ||--o| ORDER_DELIVERY : ships_to
   ORDER ||--o{ ORDER_ITEM : contains
   ORDER ||--o| PAYMENT : paid_by
   ORDER ||--o{ ORDER_EVENT : records
-
-  MEMBER {
-    bigint id PK
-    string email UK
-    string password_hash
-    string name
-    string role
-    string status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  PET_PROFILE {
-    bigint id PK
-    bigint member_id
-    string name
-    string species
-    date birth_date
-    string allergy_notes
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  PRODUCT_CATEGORY {
-    bigint id PK
-    string name
-    int display_order
-    string status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  PRODUCT {
-    bigint id PK
-    bigint category_id
-    string name
-    string description
-    int price
-    string sale_status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  LOT {
-    bigint id PK
-    bigint product_id
-    string lot1
-    string lot2
-    date lot3
-    date lot4
-    string lot5
-    string status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  WAREHOUSE {
-    bigint id PK
-    string code UK
-    string name
-    string status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-
-  LOCATION {
-    bigint id PK
-    bigint warehouse_id
-    string code
-    string name
-    string location_type
-    string status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-  STOCK {
-    bigint id PK
-    bigint product_id
-    bigint warehouse_id
-    bigint location_id
-    bigint lot_id
-    int total_quantity
-    int working_quantity
-    bigint version
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  STOCK_HISTORY {
-    bigint id PK
-    bigint stock_id
-    string change_type
-    int quantity
-    int before_quantity
-    int after_quantity
-    string reason
-    datetime created_at
-    bigint created_by
-  }
-
-  ORDER {
-    bigint id PK
-    bigint member_id
-    string order_no UK
-    string status
-    int total_amount
-    int discount_amount
-    int payment_amount
-    datetime ordered_at
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  ORDER_ITEM {
-    bigint id PK
-    bigint order_id
-    bigint product_id
-    int quantity
-    int unit_price
-    int line_amount
-    datetime created_at
-    bigint created_by
-  }
-
-  PAYMENT {
-    bigint id PK
-    bigint order_id UK
-    string payment_key
-    string status
-    int amount
-    datetime approved_at
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  COUPON {
-    bigint id PK
-    string name
-    string discount_type
-    int discount_value
-    int min_order_amount
-    datetime starts_at
-    datetime ends_at
-    string status
-    datetime created_at
-    bigint created_by
-    datetime updated_at
-    bigint updated_by
-  }
-
-  ORDER_EVENT {
-    bigint id PK
-    bigint order_id
-    string event_type
-    string description
-    datetime created_at
-    bigint created_by
-  }
+  ORDER ||--o{ SALES_ORDER : confirmed_as
+  SALES_ORDER ||--o{ SALES_ORDER_ITEM : contains
+  SALES_ORDER ||--o{ SHIPMENT_ORDER : creates
+  SHIPMENT_ORDER ||--o{ SHIPMENT_ORDER_ITEM : contains
+  PURCHASE_ORDER ||--o{ PURCHASE_ORDER_ITEM : contains
+  PURCHASE_ORDER ||--o{ RECEIVING_ORDER : creates
+  RECEIVING_ORDER ||--o{ RECEIVING_ORDER_ITEM : contains
+  STOCK_JOB ||--o{ STOCK_MOVEMENT : records
+  BUSINESS_NUMBER_RULE ||--o{ BUSINESS_NUMBER_SEQUENCE : has
 ```
+
+## 핵심 테이블 요약
+
+### 회원/상품
+
+```text
+members: id, email, password_hash, name, role, status, audit columns
+pet_profiles: id, member_id, name, species, birth_date, allergy_notes, audit columns
+product_categories: id, name, display_order, status, audit columns
+products: id, category_id, name, description, price, sale_status, audit columns
+```
+
+### LOT/재고
+
+```text
+lots: id, lot_key, product_id, lot1~lot5, status, audit columns
+warehouses: id, code, name, status, audit columns
+locations: id, warehouse_id, code, name, location_type, status, audit columns
+stocks: id, product_id, warehouse_id, location_id, lot_id, total_quantity, available_quantity, working_quantity, version, audit columns
+```
+
+현재고 unique 기준:
+
+```text
+product_id + warehouse_id + location_id + lot_id
+```
+
+수량 제약:
+
+```text
+total_quantity = available_quantity + working_quantity
+available_quantity >= 0
+working_quantity >= 0
+total_quantity >= 0
+```
+
+### 고객 주문
+
+```text
+orders: id, member_id, order_no, order_type, status, total_amount, discount_amount, payment_amount, ordered_at, audit columns
+order_deliveries: id, order_id, recipient_name, recipient_phone, zip_code, address1, address2, delivery_message, entrance_password, status, audit columns
+order_items: id, order_id, product_id, quantity, unit_price, line_amount, audit columns
+payments: id, order_id, payment_key, status, amount, approved_at, audit columns
+order_events: id, order_id, event_type, description, audit columns
+```
+
+### 판매/출고/구매/입고
+
+```text
+sales_orders: id, sales_order_no, order_id, status, confirmed_at, canceled_at, reason, audit columns
+sales_order_items: id, sales_order_id, order_item_id, product_id, order_quantity, unit_price, line_amount, status, audit columns
+shipment_orders: id, shipment_order_no, sales_order_id, warehouse_id, status, scheduled_ship_date, shipped_at, canceled_at, reason, audit columns
+shipment_order_items: id, shipment_order_id, sales_order_item_id, product_id, order_quantity, allocated_quantity, picked_quantity, shipped_quantity, status, audit columns
+purchase_orders: id, purchase_order_no, supplier_name, status, ordered_at, confirmed_at, canceled_at, reason, audit columns
+purchase_order_items: id, purchase_order_id, product_id, order_quantity, unit_price, line_amount, status, audit columns
+receiving_orders: id, receiving_order_no, purchase_order_id, warehouse_id, status, scheduled_receive_date, received_at, canceled_at, reason, audit columns
+receiving_order_items: id, receiving_order_id, purchase_order_item_id, product_id, lot_id, order_quantity, received_quantity, lot1~lot5, status, audit columns
+```
+
+### 재고 원장
+
+```text
+stock_jobs: id, job_no, job_type, warehouse_id, reference_type, reference_id, status, reason, completed_at, audit columns
+stock_movements: id, job_id, job_no, stock_id, movement_type, warehouse_id, product_id, lot_id, from_location_id, to_location_id, quantity, total_quantity, reason, audit columns
+```
+
+`stock_jobs.reference_type/reference_id`는 재고 작업을 발생시킨 외부 업무가 있을 때 사용합니다.
+
+```text
+출고 작업: reference_type = SHIPMENT_ORDER, reference_id = shipment_orders.id
+입고 작업: reference_type = RECEIVING_ORDER, reference_id = receiving_orders.id
+직접 입고/수동 조정/일반 이동: reference_type = null, reference_id = null
+```
+
+`stock_movements.quantity`는 이번 movement의 처리 수량입니다.
+`stock_movements.total_quantity`는 movement 처리 후 해당 stock row의 총수량 snapshot입니다.
 
 ## LOT 컬럼 의미
 
 | 컬럼 | 의미 |
 |---|---|
+| lot_key | 사용자가 확인할 수 있는 LOT 업무 번호 |
 | lot1 | LOT 주요 식별값 |
 | lot2 | 보조 LOT 정보 |
 | lot3 | 유효기간 |
 | lot4 | 입고일자 |
 | lot5 | 기타 관리값 |
 
-## 초기 인덱스 후보
-
-| 테이블 | 인덱스 | 목적 |
-|---|---|---|
-| members | email | 로그인 |
-| pet_profiles | member_id | 회원별 반려동물 조회 |
-| products | category_id, sale_status | 상품 목록 필터 |
-| lots | product_id | 상품별 LOT 조회 |
-| lots | lot3 | 유효기간 기준 조회 |
-| lots | lot4 | 입고일자 기준 조회 |
-| locations | warehouse_id | 창고별 location 조회 |
-| stocks | product_id, warehouse_id, location_id, lot_id | 상품/창고/location/LOT별 재고 조회 |
-| stock_histories | stock_id, created_at | 재고 이력 조회 |
-| orders | member_id, ordered_at | 회원 주문 내역 |
-| orders | order_no | 주문 단건 조회 |
-| order_items | order_id | 주문별 상품 조회 |
-| order_events | order_id, created_at | 주문 이벤트 추적 |
-
-## 동시성 검토 대상
-
-- 주문 생성 시 재고 차감
-- 주문 취소 시 재고 복구
-- LOT별 재고 차감 순서
-- 쿠폰 중복 사용 방지
-- 결제 승인 이벤트 중복 수신 방지
-```
-
-## 재고 작업 흐름
-
-재고 수량은 아래 세 값을 기준으로 해석합니다.
-
-| 항목 | 의미 |
-|---|---|
-| total_quantity | 해당 location에 실제 존재하는 총수량 |
-| working_quantity | 할당/피킹/출고 작업 중이라 판매 가능하지 않은 수량 |
-| available_quantity | `total_quantity - working_quantity`로 계산하는 가용수량 |
-
-할당, PICK, 출고 흐름은 아래 기준으로 설계합니다.
-
-```text
-할당
-- NORMAL location에서 주문에 사용할 재고를 찜
-- total_quantity 유지
-- working_quantity 증가
-- available_quantity 감소
-
-PICK
-- NORMAL location에서 PICKTO location으로 재고 이동
-- NORMAL location: total_quantity 감소, working_quantity 감소
-- PICKTO location: total_quantity 증가, working_quantity 증가
-- 창고 전체 총수량은 유지
-
-출고
-- PICKTO location에서 실제 출고
-- PICKTO location: total_quantity 감소, working_quantity 감소
-- 창고 전체 총수량 감소
-```
-## 주문/출고/입고 업무 흐름
-
-고객 주문과 창고 작업은 아래처럼 분리합니다.
-
-```text
-orders
-= 고객 주문
-
-order_deliveries
-= 고객 주문 배송 정보
-
-sales_orders
-= 관리자가 고객 주문을 확정한 내부 판매 주문
-
-shipment_orders
-= 판매 주문을 바탕으로 창고가 처리할 출고 지시
-
-purchase_orders
-= 운영사가 공급사에 넣는 구매 발주
-
-receiving_orders
-= 구매 발주를 바탕으로 창고가 처리할 입고 지시
-```
+## 업무 흐름
 
 출고 흐름:
 
@@ -333,16 +149,39 @@ purchase_orders
 -> stock_movements
 ```
 
-수량 진행률은 출고/입고 품목 단위로 관리합니다.
+재고 처리 흐름:
 
 ```text
-shipment_order_items
-- order_quantity
-- allocated_quantity
-- picked_quantity
-- shipped_quantity
-
-receiving_order_items
-- order_quantity
-- received_quantity
+입고: RECEIVE_IN, stocks 증가
+할당: ALLOCATE, NORMAL location working_quantity 증가
+PICK: PICK_OUT/PICK_IN, NORMAL -> PICKTO 이동
+출고: SHIP_OUT, PICKTO 재고 차감
 ```
+
+## 주요 인덱스 후보
+
+| 테이블 | 인덱스 | 목적 |
+|---|---|---|
+| members | email | 로그인 |
+| pet_profiles | member_id | 회원별 반려동물 조회 |
+| products | category_id, sale_status | 상품 목록 필터 |
+| lots | product_id, lot3, lot4 | 상품/유효기간/입고일자 조회 |
+| locations | warehouse_id | 창고별 location 조회 |
+| stocks | product_id, warehouse_id, location_id, lot_id | 현재고 조회 |
+| orders | member_id, ordered_at | 회원 주문 내역 |
+| order_deliveries | order_id | 주문 배송 정보 조회 |
+| order_items | order_id | 주문별 상품 조회 |
+| stock_jobs | reference_type, reference_id | 출고/입고 지시별 재고 작업 추적 |
+| stock_movements | job_id, stock_id, created_at | 작업별/현재고별 원장 조회 |
+| sales_orders | order_id | 고객 주문 기준 판매 주문 조회 |
+| shipment_orders | sales_order_id, warehouse_id, status | 출고 지시 조회 |
+| purchase_orders | status, ordered_at | 구매 발주 조회 |
+| receiving_orders | purchase_order_id, warehouse_id, status | 입고 지시 조회 |
+
+## 동시성 검토 대상
+
+- 주문 생성 시 중복 주문번호 방지
+- 재고 할당 시 가용수량 동시 차감
+- PICKTO 이동 시 출발/도착 현재고 동시 수정
+- 출고 확정 시 PICKTO 작업수량 동시 차감
+- 업무 번호 구간 할당 중복 방지
