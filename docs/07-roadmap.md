@@ -2,30 +2,21 @@
 
 이 문서는 PetOps Commerce 프로젝트의 전체 개발 순서와 현재 진행 상태를 정리합니다.
 
-## 상태 기준
-
-| 상태 | 의미 |
-|---|---|
-| 완료 | PR merge와 로컬/원격 브랜치 정리 완료 |
-| 진행 중 | 현재 작업 브랜치에서 진행 중 |
-| 진행 예정 | 다음 작업 후보 |
-| 예정 | 아직 시작하지 않은 작업 |
-| 보류 | 현재 범위에서 제외한 작업 |
-
 ## 현재 요약
 
 | 구분 | 현재 상태 |
 |---|---|
-| 현재 브랜치 | `docs/update-session-handoff` |
-| Git 상태 | 세션 인수인계 문서/skill 정리 중 |
-| 마지막 완료 작업 | `docs/defer-admin-action-log` |
-| 다음 추천 작업 | `feature/inventory-domain` |
+| 기준 날짜 | 2026-06-29 |
+| 현재 브랜치 | `docs/update-current-project-docs` |
+| Git 상태 | 전체 프로젝트 문서 최신화 중 |
+| 마지막 완료 작업 | `fix/location-type-normal-typo` |
+| 다음 추천 작업 | `feature/order-fulfillment-workflow` |
 
 ## Phase 0. 설계 - 완료
 
 - 요구사항 정의
 - 아키텍처 설계
-- ERD 초안 작성
+- ERD 작성
 - API 목록 작성
 - 기술 스택 확정
 - PostgreSQL/MySQL 차이와 비용 전략 정리
@@ -41,115 +32,97 @@
 - Spring Security 기본 설정
 - Docker Compose PostgreSQL 구성
 - JPA/Flyway 기본 설정
-- Flyway 초기 migration 추가
-- ERD와 Flyway schema 문서화
+- Flyway migration 추가
 - IntelliJ HTTP Client 수동 API 테스트 흐름 추가
 
-## Phase 2. 핵심 도메인 - 진행 중
+## Phase 2. 핵심 도메인 - 완료
+
+- 회원 도메인
+- 상품/카테고리 도메인
+- JWT 로그인과 인증 필터
+- Audit user tracking
+- 공통 API 응답/전역 예외 처리
+- 주문 생성 도메인
+- 재고 조회 도메인
+- QueryDSL 기반 재고 검색
+- 업무 번호 생성기
+- 재고 작업/이동 원장
+- 관리자 재고 명령 API
+- location type `NORMAL` 오타 수정
+
+## Phase 3. 인증과 권한 - 부분 완료
 
 완료:
 
-- `feature/member-domain`
-  - 회원 Entity
-  - 회원 Repository
-  - 회원 Service
-  - 회원 생성/조회 API
-  - 회원 Controller/Service 테스트
-
-- `feature/product-domain`
-  - 상품 카테고리 Entity
-  - 상품 Entity
-  - 상품 카테고리 생성/조회 API
-  - 상품 생성/조회/목록 API
-  - 상품 Controller/Service 테스트
+- JWT 로그인 API
+- access token 발급
+- JWT 인증 필터
+- 비활성 회원 로그인 차단
+- `/api/v1/admin/**` 인증 필요 정책 정리
 
 진행 예정:
 
-1. `feature/inventory-domain`
-2. `feature/order-domain`
-3. `feature/payment-domain`
-4. `feature/coupon-domain`
+- `ADMIN`, `OPERATOR`, `MEMBER` 역할별 인가 세분화
+- `/members/me` 중심 회원 조회 정책 정리
+- 관리자 API 접근 정책 정리
+
+## Phase 4. 재고와 주문 운영 흐름 - 진행 예정
+
+현재 DB schema는 고객 주문 이후의 운영 workflow를 준비해 둔 상태입니다.
+
+출고 흐름:
+
+```text
+orders
+-> sales_orders
+-> shipment_orders
+-> stock_jobs(reference_type = SHIPMENT_ORDER)
+-> stock_movements
+```
+
+입고 흐름:
+
+```text
+purchase_orders
+-> receiving_orders
+-> stock_jobs(reference_type = RECEIVING_ORDER)
+-> stock_movements
+```
+
+추천 브랜치:
+
+```text
+feature/order-fulfillment-workflow
+```
 
 목표:
 
-- JPA Entity 작성
-- Repository 작성
-- Service 계층 작성
-- Controller/API 작성
-- 테스트 작성
-- Flyway schema와 Entity validate 흐름 확인
+- 고객 주문을 판매 주문으로 확정
+- 판매 주문 기반 출고 지시 생성
+- 출고 지시 품목별 할당/피킹/출고 수량 관리
+- 구매 발주와 입고 지시 생성
+- 입고 지시 확정 시 LOT/현재고 반영
+- 기존 재고 operation과 출고/입고 workflow 연결
 
-## Phase 3. 공통 API 구조 - 완료
+## Phase 5. API 문서화 - 진행 예정
 
-완료:
+추천 브랜치:
 
-- `ApiResponse<T>` 공통 응답 구조
-- `GlobalExceptionHandler` 전역 예외 처리
-- `ResponseStatusException` 실패 응답 통일
-- validation error 응답 통일
-- Spring Security 예외 응답 처리 보완
+```text
+chore/openapi-docs
+```
 
-예정:
+목표:
 
-- API 에러 코드 세분화
-- 도메인별 custom exception 도입
 - Swagger/OpenAPI 설정
-
-## Phase 4. 인증과 Audit - 부분 완료
-
-완료:
-
-- `feature/auth-jwt-login`
-  - JWT 로그인 API
-  - access token 발급
-  - JWT 인증 필터
-  - `LoginMember` 기반 로그인 사용자 표현
-
-- `feature/audit-user-tracking`
-  - JPA Auditing 설정
-  - `created_by`, `updated_by` 자동 입력
-  - `created_at`, `updated_at` 공통 관리
-  - 상품/카테고리 생성 API 인증 필요 처리
-
-보류:
-
-- 관리자 작업 로그
-- 관리자 작업 IP/User-Agent 저장
-- 관리자 작업 성공/실패 이력 저장
-
-보류 이유:
-
-- `created_by`, `updated_by`는 이미 핵심 데이터에 반영되어 있습니다.
-- IP/User-Agent는 데이터의 작성자라기보다 요청 환경 정보입니다.
-- 상품/회원/재고 테이블에 직접 넣기보다 `admin_action_logs` 같은 운영 로그 테이블로 분리하는 편이 유지보수에 좋습니다.
-
-추후 브랜치:
-
-```text
-feature/admin-action-log
-```
-
-## Phase 5. 재고와 주문 흐름 - 진행 예정
-
-다음 작업은 재고 도메인입니다.
-
-```text
-feature/inventory-domain
-```
-
-재고 도메인에서 확인할 내용:
-
-- 창고 기준 재고 관리
-- lot 기준 상세 재고 관리
-- 상품과 재고의 관계
-- FK 제약 없이 애플리케이션에서 참조 유효성 검증
-- 향후 주문 생성 시 재고 차감으로 이어지는 구조
+- Health/Member/Auth/Product/Inventory/Order API 문서화
+- 관리자 API 문서화 기준 수립
 
 ## Phase 6. JPA와 DB 설계 강화 - 예정
 
 - 연관관계 정리
 - N+1 문제 재현과 해결
-- QueryDSL 검색 API
+- QueryDSL 검색 조건 확장
 - 인덱스 적용 전후 비교
 - 트랜잭션 경계 문서화
 

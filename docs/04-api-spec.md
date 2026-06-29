@@ -1,103 +1,144 @@
-# API 목록 초안
+# API 목록
 
 ## 공통 규칙
 
 - Base URL: `/api/v1`
 - 인증: `Authorization: Bearer {accessToken}`
-- 응답 포맷은 공통 wrapper를 사용한다.
-- 목록 조회 API는 `page`, `size`, `sort`를 지원한다.
+- 응답 포맷은 공통 wrapper를 사용합니다.
+- 관리자 API는 `/admin/**` 경로를 사용합니다.
+- 현재 권한은 인증 사용자 중심이며, 운영 목표는 `ADMIN`, `OPERATOR`, `MEMBER` 역할로 세분화하는 것입니다.
 
 ## 인증
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| POST | `/auth/signup` | 회원가입 | Guest |
 | POST | `/auth/login` | 로그인 | Guest |
-| POST | `/auth/refresh` | 토큰 재발급 | Member |
-| POST | `/auth/logout` | 로그아웃 | Member |
 
 ## 회원/반려동물
 
-> 회원 도메인 1차에서는 공통 응답 wrapper 적용 전까지 원본 DTO 응답을 사용합니다.
-
-
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| GET | `/members/me` | 내 정보 조회 | Member |
-| PATCH | `/members/me` | 내 정보 수정 | Member |
-| GET | `/pets` | 내 반려동물 목록 | Member |
-| POST | `/pets` | 반려동물 등록 | Member |
-| PATCH | `/pets/{petId}` | 반려동물 수정 | Member |
-| DELETE | `/pets/{petId}` | 반려동물 삭제 | Member |
+| POST | `/members` | 회원 생성 | Guest |
+| GET | `/members/{memberId}` | 회원 단건 조회 | Guest 임시 |
+| GET | `/members/me` | 내 정보 조회 | Member 예정 |
+| PATCH | `/members/me` | 내 정보 수정 | Member 예정 |
+| GET | `/pets` | 내 반려동물 목록 | Member 예정 |
+| POST | `/pets` | 반려동물 등록 | Member 예정 |
 
 ## 상품
 
 상품은 단일 운영사가 등록하고 사용자가 구매하는 B2C 상품 카탈로그입니다.
-현재 1차 구현에서는 인증/관리자 기능 전 단계이므로 학습 검증을 위해 `/products`, `/product-categories` 생성 API를 임시로 열어둡니다.
-운영 단계에서는 상품 등록/수정 API를 Admin 권한으로 잠글 예정입니다.
-
-### 현재 구현 API
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| POST | `/product-categories` | 상품 카테고리 생성 | Guest 임시 |
+| POST | `/product-categories` | 상품 카테고리 생성 | Authenticated |
 | GET | `/product-categories` | 상품 카테고리 목록 조회 | Guest |
-| POST | `/products` | 상품 생성 | Guest 임시 |
+| POST | `/products` | 상품 생성 | Authenticated |
 | GET | `/products` | 상품 목록 조회 | Guest |
 | GET | `/products/{productId}` | 상품 상세 조회 | Guest |
 
-### 운영 목표 API
+## 고객 주문
+
+`orders`는 고객이 생성한 주문입니다.
+배송 정보는 `order_deliveries`로 분리해 관리합니다.
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| GET | `/products` | 상품 목록 조회 | Guest |
-| GET | `/products/{productId}` | 상품 상세 조회 | Guest |
-| POST | `/admin/products` | 상품 등록 | Admin |
-| PATCH | `/admin/products/{productId}` | 상품 수정 | Admin |
-| PATCH | `/admin/products/{productId}/status` | 판매 상태 변경 | Admin |
+| POST | `/orders` | 고객 주문 생성 | Member |
+| GET | `/orders` | 내 주문 목록 | Member 예정 |
+| GET | `/orders/{orderId}` | 주문 상세 | Member 예정 |
+| POST | `/orders/{orderId}/cancel` | 주문 취소 | Member 예정 |
 
-## 장바구니
+현재 주문 생성 요청은 상품과 수량 중심입니다.
+배송 정보 입력은 `order_deliveries` 적용 브랜치에서 요청 DTO에 확장합니다.
+
+```json
+{
+  "items": [
+    {
+      "productId": 1,
+      "quantity": 2
+    }
+  ]
+}
+```
+
+## 판매/출고/구매/입고 업무 목표 API
+
+아래 API는 현재 schema 기준의 목표 흐름입니다.
+Service/Controller 구현은 후속 브랜치에서 진행합니다.
+
+### 판매 주문
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| GET | `/cart/items` | 장바구니 조회 | Member |
-| POST | `/cart/items` | 장바구니 추가 | Member |
-| PATCH | `/cart/items/{cartItemId}` | 수량 변경 | Member |
-| DELETE | `/cart/items/{cartItemId}` | 항목 삭제 | Member |
+| POST | `/admin/sales-orders` | 고객 주문을 내부 판매 주문으로 생성 | Operator 예정 |
+| POST | `/admin/sales-orders/{salesOrderId}/confirm` | 판매 주문 확정 | Operator 예정 |
+| POST | `/admin/sales-orders/{salesOrderId}/cancel` | 판매 주문 취소 | Operator 예정 |
+| GET | `/admin/sales-orders` | 판매 주문 목록 조회 | Operator 예정 |
 
-## 주문
+### 출고 지시
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| POST | `/orders` | 주문 생성 | Member |
-| GET | `/orders` | 내 주문 목록 | Member |
-| GET | `/orders/{orderId}` | 주문 상세 | Member |
-| POST | `/orders/{orderId}/cancel` | 주문 취소 | Member |
-| GET | `/admin/orders` | 주문 관리 목록 | Operator |
-| PATCH | `/admin/orders/{orderId}/status` | 주문 상태 변경 | Operator |
+| POST | `/admin/shipment-orders` | 판매 주문 기반 출고 지시 생성 | Operator 예정 |
+| POST | `/admin/shipment-orders/{shipmentOrderId}/allocate` | 출고 재고 할당 | Operator 예정 |
+| POST | `/admin/shipment-orders/{shipmentOrderId}/pick` | PICKTO location 이동 | Operator 예정 |
+| POST | `/admin/shipment-orders/{shipmentOrderId}/ship` | 출고 확정 | Operator 예정 |
+| GET | `/admin/shipment-orders` | 출고 지시 목록 조회 | Operator 예정 |
+
+출고 수량 진행률은 `shipment_order_items`에서 관리합니다.
+
+```text
+order_quantity
+allocated_quantity
+picked_quantity
+shipped_quantity
+```
+
+### 구매 발주
+
+| Method | Path | 설명 | 권한 |
+|---|---|---|---|
+| POST | `/admin/purchase-orders` | 공급사 구매 발주 생성 | Operator 예정 |
+| POST | `/admin/purchase-orders/{purchaseOrderId}/confirm` | 구매 발주 확정 | Operator 예정 |
+| POST | `/admin/purchase-orders/{purchaseOrderId}/cancel` | 구매 발주 취소 | Operator 예정 |
+| GET | `/admin/purchase-orders` | 구매 발주 목록 조회 | Operator 예정 |
+
+### 입고 지시
+
+| Method | Path | 설명 | 권한 |
+|---|---|---|---|
+| POST | `/admin/receiving-orders` | 구매 발주 기반 입고 지시 생성 | Operator 예정 |
+| POST | `/admin/receiving-orders/{receivingOrderId}/receive` | 입고 확정 | Operator 예정 |
+| GET | `/admin/receiving-orders` | 입고 지시 목록 조회 | Operator 예정 |
+
+입고 수량 진행률은 `receiving_order_items`에서 관리합니다.
+
+```text
+order_quantity
+received_quantity
+lot1~lot5
+```
 
 ## 재고
 
+현재 재고 API는 관리자 재고 테스트와 이후 입고/출고 workflow 연결을 위한 기반 API입니다.
+
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
+| POST | `/admin/warehouses` | 창고 생성 | Operator |
+| POST | `/admin/locations` | location 생성 | Operator |
 | GET | `/admin/stocks` | location 단위 현재고 목록 조회 | Operator |
 | GET | `/admin/stocks/{stockId}` | 현재고 단건 조회 | Operator |
-| POST | `/admin/stocks/inbound` | 입고 처리 | Admin |
-| POST | `/admin/stocks/allocate` | 재고 할당 | Admin |
-| POST | `/admin/stocks/pick` | PICKTO location 재고 이동 | Admin |
-| POST | `/admin/stocks/outbound` | 출고 처리 | Admin |
-| POST | `/admin/stocks/adjustment` | 재고 조정 | Admin |
-| GET | `/admin/stocks/{stockId}/histories` | 재고 이력 조회 | Operator |
+| POST | `/admin/stocks` | LOT 생성/조회 후 입고성 현재고 생성 또는 증가 | Operator |
+| POST | `/admin/stocks/transfer` | 가용수량 기준 location 재고 이동 | Operator |
+| POST | `/admin/stocks/adjust` | 수동 재고 조정 | Operator |
+| POST | `/admin/stocks/allocate` | 출고 작업 재고 할당 | Operator |
+| POST | `/admin/stocks/pick` | PICKTO location 이동 | Operator |
+| POST | `/admin/stocks/outbound` | PICKTO 재고 출고 확정 | Operator |
 
-현재 1차 구현 API:
-
-```text
-GET /api/v1/admin/stocks
-GET /api/v1/admin/stocks?productId=1&warehouseId=1&locationId=1
-GET /api/v1/admin/stocks/{stockId}
-```
-
-현재고 응답에는 총수량, 작업수량, 가용수량을 함께 제공합니다.
+현재고 응답에는 총수량, 가용수량, 작업수량을 함께 제공합니다.
 
 ```json
 {
@@ -107,24 +148,24 @@ GET /api/v1/admin/stocks/{stockId}
   "locationId": 1,
   "lotId": 1,
   "totalQuantity": 100,
-  "workingQuantity": 3,
-  "availableQuantity": 97
+  "availableQuantity": 97,
+  "workingQuantity": 3
 }
 ```
+
 ## 쿠폰
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| GET | `/coupons/my` | 내 쿠폰 목록 | Member |
-| POST | `/admin/coupons` | 쿠폰 생성 | Admin |
-| POST | `/admin/coupons/{couponId}/issue` | 쿠폰 발급 | Admin |
+| GET | `/coupons/my` | 내 쿠폰 목록 | Member 예정 |
+| POST | `/admin/coupons` | 쿠폰 생성 | Admin 예정 |
+| POST | `/admin/coupons/{couponId}/issue` | 쿠폰 발급 | Admin 예정 |
 
 ## 운영/AI
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|
-| GET | `/admin/events` | 운영 이벤트 조회 | Operator |
-| POST | `/admin/ai/support-draft` | 고객 응대 초안 생성 | Operator |
-| GET | `/admin/reports/daily-sales` | 일별 매출 리포트 | Admin |
-| GET | `/admin/reports/stock-snapshot` | 재고 스냅샷 리포트 | Admin |
-
+| GET | `/admin/events` | 운영 이벤트 조회 | Operator 예정 |
+| POST | `/admin/ai/support-draft` | 고객 응대 초안 생성 | Operator 예정 |
+| GET | `/admin/reports/daily-sales` | 일별 매출 리포트 | Admin 예정 |
+| GET | `/admin/reports/stock-snapshot` | 재고 스냅샷 리포트 | Admin 예정 |
