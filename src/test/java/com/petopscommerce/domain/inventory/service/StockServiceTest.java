@@ -42,7 +42,7 @@ class StockServiceTest {
     @Test
     @DisplayName("조건에 맞는 현재고 목록을 조회하고 가용수량을 계산한다")
     void getStocks() {
-        Stock stock = Stock.create(1L, 2L, 3L, 4L, 100, 10);
+        Stock stock = Stock.create(1L, 2L, 3L, 4L, 100);
         ReflectionTestUtils.setField(stock, "id", 5L);
         ReflectionTestUtils.setField(stock, "workingQuantity", 3);
         ReflectionTestUtils.setField(stock, "availableQuantity", 97);
@@ -64,7 +64,7 @@ class StockServiceTest {
     @Test
     @DisplayName("현재고 id로 단건 조회한다")
     void getStock() {
-        Stock stock = Stock.create(1L, 2L, 3L, 4L, 100, 10);
+        Stock stock = Stock.create(1L, 2L, 3L, 4L, 100);
         ReflectionTestUtils.setField(stock, "id", 5L);
         ReflectionTestUtils.setField(stock, "createdAt", LocalDateTime.of(2026, 6, 24, 10, 0));
         when(stockRepository.findById(5L)).thenReturn(Optional.of(stock));

@@ -140,7 +140,6 @@ erDiagram
     bigint lot_id
     int total_quantity
     int working_quantity
-    int safety_quantity
     bigint version
     datetime created_at
     bigint created_by

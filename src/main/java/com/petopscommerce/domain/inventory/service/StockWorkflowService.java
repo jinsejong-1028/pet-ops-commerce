@@ -25,6 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
+
 /**
  * - 재고 작업 비즈니스 로직
  * - 할당, PICKTO 이동, 출고 업무 순서와 상태 변경 담당
@@ -40,11 +43,12 @@ public class StockWorkflowService {
     private final OrderItemRepository orderItemRepository;
     private final BusinessNumberGenerator businessNumberGenerator;
     private final StockOperationService stockOperationService;
+    private final Clock clock;
 
     /**
      * - 생성자 주입
      */
-    public StockWorkflowService(LocationRepository locationRepository, StockJobRepository stockJobRepository, StockMovementRepository stockMovementRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, BusinessNumberGenerator businessNumberGenerator, StockOperationService stockOperationService) {
+    public StockWorkflowService(LocationRepository locationRepository, StockJobRepository stockJobRepository, StockMovementRepository stockMovementRepository, OrderRepository orderRepository, OrderItemRepository orderItemRepository, BusinessNumberGenerator businessNumberGenerator, StockOperationService stockOperationService, Clock clock) {
         this.locationRepository = locationRepository;
         this.stockJobRepository = stockJobRepository;
         this.stockMovementRepository = stockMovementRepository;
@@ -52,6 +56,7 @@ public class StockWorkflowService {
         this.orderItemRepository = orderItemRepository;
         this.businessNumberGenerator = businessNumberGenerator;
         this.stockOperationService = stockOperationService;
+        this.clock = clock;
     }
 
     /**
@@ -141,7 +146,7 @@ public class StockWorkflowService {
 
         // 단계 4: job 상태를 SHIPPED로 변경
         // 결과: 출고 작업이 완료 상태로 마감됨
-        stockJob.markShipped();
+        stockJob.markShipped(LocalDateTime.now(clock));
 
         return StockJobResponse.from(stockJob);
     }

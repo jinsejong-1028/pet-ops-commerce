@@ -109,7 +109,7 @@ lotId
 locationType
 lotStatus
 availableQuantity > 0
-safetyQuantity 이하
+availableQuantity 기준
 유효기간 임박
 입고일자 범위
 정렬

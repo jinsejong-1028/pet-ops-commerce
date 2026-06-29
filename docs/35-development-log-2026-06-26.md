@@ -14,7 +14,7 @@ feature/inventory-admin-stock-command
 - LOT 업무번호 `LOT00000001` 형식 생성을 위해 `BusinessNumberType.LOT`을 추가했습니다.
 - `lots.lot_key`를 추가하고 기존 `product_id + lot1` unique 제약을 제거했습니다.
 - `stocks.available_quantity` 컬럼을 추가해 총수량/가용수량/작업수량을 모두 저장하도록 변경했습니다.
-- `stock_movements.available_quantity_delta`를 추가했습니다.
+- `stock_movements`는 처리 수량과 처리 후 총수량 snapshot 중심의 원장 구조로 정리했습니다.
 - 가용수량 기준 location 간 재고 이동 API를 추가했습니다.
 - 수동 재고 조정은 `ADJUST` 단일 타입과 signed quantity로 처리하도록 정리했습니다.
 - `StockOperationService`를 추가해 입고, 할당, PICK, 출고, 조정의 현재고 수량 변경과 원장 저장 책임을 공통화했습니다.

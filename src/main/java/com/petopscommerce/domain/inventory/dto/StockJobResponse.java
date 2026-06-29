@@ -2,6 +2,8 @@ package com.petopscommerce.domain.inventory.dto;
 
 import com.petopscommerce.domain.inventory.entity.StockJob;
 
+import java.time.LocalDateTime;
+
 /**
  * - 재고 작업 응답 DTO
  *
@@ -12,6 +14,7 @@ import com.petopscommerce.domain.inventory.entity.StockJob;
  * @param warehouseId 창고 ID
  * @param referenceType 참조 업무 유형
  * @param referenceId 참조 업무 ID
+ * @param completedAt 작업 완료 일시
  */
 public record StockJobResponse(
         Long jobId,
@@ -20,7 +23,8 @@ public record StockJobResponse(
         String status,
         Long warehouseId,
         String referenceType,
-        Long referenceId
+        Long referenceId,
+        LocalDateTime completedAt
 ) {
 
     /**
@@ -37,7 +41,8 @@ public record StockJobResponse(
                 stockJob.getStatus().name(),
                 stockJob.getWarehouseId(),
                 stockJob.getReferenceType() == null ? null : stockJob.getReferenceType().name(),
-                stockJob.getReferenceId()
+                stockJob.getReferenceId(),
+                stockJob.getCompletedAt()
         );
     }
 }

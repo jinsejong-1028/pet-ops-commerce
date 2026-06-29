@@ -108,8 +108,7 @@ GET /api/v1/admin/stocks/{stockId}
   "lotId": 1,
   "totalQuantity": 100,
   "workingQuantity": 3,
-  "availableQuantity": 97,
-  "safetyQuantity": 10
+  "availableQuantity": 97
 }
 ```
 ## 쿠폰

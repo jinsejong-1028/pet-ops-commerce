@@ -94,7 +94,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "stockId": 1,
+  "stockId": 3,
   "quantity": -3,
   "reason": "manual inventory adjustment"
 }
@@ -123,7 +123,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "stockId": 1,
+  "stockId": 3,
   "orderId": 1,
   "orderItemId": 1,
   "quantity": 2,
@@ -138,7 +138,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "jobId": 5,
+  "jobId": 8,
   "picktoLocationId": 4,
   "quantity": 2,
   "reason": "pick to outbound staging"
@@ -152,7 +152,7 @@ Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
 {
-  "jobId": 5,
+  "jobId": 8,
   "quantity": 2,
   "reason": "shipment completed"
 }

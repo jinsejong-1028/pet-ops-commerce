@@ -2,7 +2,6 @@ package com.petopscommerce.domain.inventory.dto;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -20,7 +19,6 @@ import java.time.LocalDate;
  * @param lot4 입고일자, null이면 오늘 날짜
  * @param lot5 기타 관리값
  * @param quantity 입고 수량
- * @param safetyQuantity 안전재고 수량, null이면 0
  * @param reason 입고 사유
  */
 public record ReceiveStockRequest(
@@ -41,8 +39,6 @@ public record ReceiveStockRequest(
         @NotNull
         @Positive
         Integer quantity,
-        @PositiveOrZero
-        Integer safetyQuantity,
         @Size(max = 500)
         String reason
 ) {
