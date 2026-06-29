@@ -47,6 +47,7 @@
 | 26 | `test/business-number-concurrency` | Testcontainers PostgreSQL 기반 업무 번호 구간 할당 동시성 검증 추가 | `31-business-number-generator.md`, `33-development-log-2026-06-26.md` |
 | 27 | `feature/inventory-stock-workflow` | stock_jobs/stock_movements 기반 재고 할당, PICKTO 이동, 출고 API 추가 | `25-inventory-domain.md`, `34-development-log-2026-06-26.md` |
 | 28 | `feature/inventory-admin-stock-command` | 창고/location/입고성 현재고 생성 API와 재고 수량 변경 공통 서비스 추가 | `25-inventory-domain.md`, `35-development-log-2026-06-26.md` |
+| 29 | `chore/squash-inventory-migrations` | Docker DB reset 전제 재고/주문/출고/입고 workflow migration 최종 schema 정리 | `36-development-log-2026-06-29.md` |
 
 ## 현재 진행 작업
 
