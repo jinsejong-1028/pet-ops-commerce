@@ -34,12 +34,12 @@ V5__create_order_fulfillment_workflow.sql
 | `lots` | 상품별 LOT 관리 정보 |
 | `warehouses` | 창고 |
 | `stocks` | 상품/창고/location/LOT별 현재고 |
-| `orders` | 고객 주문 |
-| `order_deliveries` | 고객 주문 배송 정보 |
-| `order_items` | 고객 주문 상품 |
+| `customer_orders` | 고객 주문 |
+| `customer_order_deliveries` | 고객 주문 배송 정보 |
+| `customer_order_items` | 고객 주문 상품 |
 | `payments` | 결제 |
 | `coupons` | 쿠폰 마스터 |
-| `order_events` | 주문 이벤트 이력 |
+| `customer_order_events` | 고객 주문 이벤트 이력 |
 
 ## V2 Inventory Locations
 
@@ -76,7 +76,7 @@ V5__create_order_fulfillment_workflow.sql
 
 | 테이블 | 역할 |
 |---|---|
-| `sales_orders` | 고객 주문을 관리자가 확정한 내부 판매 주문 |
+| `sales_orders` | 고객 주문 생성 시 자동 생성되는 내부 판매 주문, `order_date`로 판매 주문 업무일자 관리 |
 | `sales_order_items` | 판매 주문 품목 snapshot |
 | `shipment_orders` | 판매 주문 기반 창고 출고 지시 |
 | `shipment_order_items` | 출고 지시 품목과 할당/피킹/출고 수량 |
@@ -88,7 +88,7 @@ V5__create_order_fulfillment_workflow.sql
 ## DB FK 제약을 걸지 않는 이유
 
 현재 schema에서는 DB 레벨 foreign key constraint를 걸지 않습니다.
-대신 `member_id`, `product_id`, `order_id`, `warehouse_id` 같은 컬럼과 인덱스로 논리 관계를 표현합니다.
+대신 `member_id`, `product_id`, `customer_order_id`, `warehouse_id` 같은 컬럼과 인덱스로 논리 관계를 표현합니다.
 
 이유:
 

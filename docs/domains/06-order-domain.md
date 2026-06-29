@@ -3,7 +3,7 @@
 ## 작업 목적
 
 주문 도메인은 고객이 상품을 구매하는 주문을 생성합니다.
-현재 `orders`는 고객 주문을 의미하고, 관리자 판매 주문과 창고 출고 지시는 별도 workflow 테이블로 분리합니다.
+현재 `customer_orders`는 고객 주문을 의미하고, 관리자 판매 주문과 창고 출고 지시는 별도 workflow 테이블로 분리합니다.
 
 ```text
 JWT 로그인 사용자
@@ -12,8 +12,10 @@ JWT 로그인 사용자
 -> 상품 존재 검증
 -> 상품 판매상태 ON_SALE 검증
 -> 상품 현재 가격으로 주문 금액 계산
--> orders 저장
--> order_items 저장
+-> customer_orders 저장
+-> customer_order_items 저장
+-> sales_orders CREATED 자동 생성
+-> sales_order_items CREATED 자동 생성
 -> 주문 응답 반환
 ```
 
@@ -38,14 +40,14 @@ JWT 로그인 사용자
 이후 migration 정리로 주문 주변 schema가 확장되었습니다.
 
 ```text
-orders
+customer_orders
 = 고객 주문
 
-order_deliveries
+customer_order_deliveries
 = 고객 주문 배송 정보
 
 sales_orders
-= 관리자가 고객 주문을 확정한 내부 판매 주문
+= 고객 주문 생성 시 CREATED 상태로 자동 생성되는 내부 판매 주문
 
 shipment_orders
 = 판매 주문을 바탕으로 창고가 처리할 출고 지시
@@ -57,8 +59,9 @@ receiving_orders
 = 구매 발주를 바탕으로 창고가 처리할 입고 지시
 ```
 
-현재 주문 생성 API는 아직 배송 정보와 판매/출고 지시를 자동 생성하지 않습니다.
-이 연결은 후속 `feature/order-fulfillment-workflow`에서 구현합니다.
+현재 주문 생성 API는 배송 정보와 출고 지시는 아직 자동 생성하지 않습니다.
+대신 고객 주문 생성 시 `sales_orders`와 `sales_order_items`를 `CREATED` 상태로 자동 생성합니다.
+운영자는 판매 주문을 확인한 뒤 확정 또는 취소합니다.
 
 ## 제외 범위
 
@@ -66,7 +69,6 @@ receiving_orders
 
 - 활성 상태가 아닌 회원 검증
 - 배송 정보 저장
-- 판매 주문 생성
 - 출고 지시 생성
 - 재고 할당
 - PICKTO location 이동
@@ -87,13 +89,13 @@ fix/auth-member-status-check
 
 ```text
 DB FK 제약 없음
-orders.member_id 컬럼 있음
-order_items.order_id 컬럼 있음
-order_items.product_id 컬럼 있음
+customer_orders.member_id 컬럼 있음
+customer_order_items.customer_order_id 컬럼 있음
+customer_order_items.product_id 컬럼 있음
 Service에서 상품 존재 여부 검증
 ```
 
-`orders.member_id`는 고객 주문의 소유자를 표현합니다.
+`customer_orders.member_id`는 고객 주문의 소유자를 표현합니다.
 `created_by`는 audit 컬럼으로, 누가 row를 생성했는지 기록하는 기술/운영 추적 값입니다.
 따라서 고객 주문의 업무 주체는 `member_id`로 유지합니다.
 
@@ -123,7 +125,7 @@ BusinessNumberGenerator
 | `discount_amount` | 할인 금액, 쿠폰 전까지 0 |
 | `payment_amount` | 결제 대상 금액 |
 
-상품 가격이 나중에 바뀌어도 과거 주문 금액이 바뀌지 않도록 `order_items.unit_price`와 `order_items.line_amount`를 저장합니다.
+상품 가격이 나중에 바뀌어도 과거 주문 금액이 바뀌지 않도록 `customer_order_items.unit_price`와 `customer_order_items.line_amount`를 저장합니다.
 
 ## API 목록
 
@@ -180,12 +182,71 @@ Authorization: Bearer {accessToken}
 }
 ```
 
+
+### 관리자 판매 주문 확정
+
+```text
+POST /api/v1/admin/sales-orders/{salesOrderId}/confirm
+```
+
+역할:
+
+```text
+sales_orders 조회(CREATED)
+-> customer_orders 조회(CREATED)
+-> sales_order_items 조회
+-> ACTIVE warehouse 검증
+-> sales_orders CONFIRMED 변경
+-> customer_orders CONFIRMED 변경
+-> sales_order_items CONFIRMED 변경
+-> shipment_orders 저장(CREATED)
+-> shipment_order_items 저장(CREATED)
+```
+
+요청:
+
+```json
+{
+  "warehouseId": 1,
+  "scheduledShipDate": "2026-06-30",
+  "reason": "confirm sales order for outbound"
+}
+```
+
+응답 핵심 값:
+
+```json
+{
+  "salesOrderNo": "SOR-20260629-000001",
+  "salesOrderStatus": "CONFIRMED",
+  "shipmentOrderNo": "SHP-20260629-000001",
+  "shipmentOrderStatus": "CREATED"
+}
+```
+
+### 관리자 판매 주문 취소
+
+```text
+POST /api/v1/admin/sales-orders/{salesOrderId}/cancel
+```
+
+역할:
+
+```text
+sales_orders 조회(CREATED)
+-> customer_orders 조회(CREATED)
+-> sales_order_items 조회
+-> sales_orders CANCELED 변경
+-> customer_orders CANCELED 변경
+-> sales_order_items CANCELED 변경
+```
+
 ## 후속 업무 흐름
 
 출고 흐름:
 
 ```text
-orders
+customer_orders
 -> sales_orders
 -> shipment_orders
 -> stock_jobs(reference_type = SHIPMENT_ORDER)
@@ -203,13 +264,13 @@ purchase_orders
 
 ## 검증 방법
 
-자동 테스트:
+사용자가 실행할 검증 명령:
 
 ```powershell
 .\gradlew.bat test --console=plain
 ```
 
-서버 실행 후 IntelliJ HTTP Client로 확인합니다.
+사용자가 서버 실행 후 IntelliJ HTTP Client로 확인합니다.
 
 ```powershell
 .\gradlew.bat bootRun
@@ -223,7 +284,7 @@ http/order-api.http
 
 ## 다음 작업 후보
 
-주문 도메인 이후에는 판매/출고/입고 workflow를 연결합니다.
+주문 도메인 이후에는 판매 주문 기반 출고 할당/피킹/출고 workflow를 연결합니다.
 
 ```text
 feature/order-fulfillment-workflow

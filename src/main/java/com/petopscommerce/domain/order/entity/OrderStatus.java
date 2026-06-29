@@ -2,11 +2,14 @@ package com.petopscommerce.domain.order.entity;
 
 /**
  * - 주문 상태
- * - 주문 생성 이후 결제/출고 흐름의 기준값
+ * - 고객 주문 생성 이후 판매 확정/출고 흐름의 기준값
  */
 public enum OrderStatus {
-    /** - 주문 생성 */
+    /** - 고객 주문 생성 */
     CREATED,
+
+    /** - 운영자가 판매 주문을 확정해 고객 주문도 확정됨 */
+    CONFIRMED,
 
     /** - 결제 완료 */
     PAID,

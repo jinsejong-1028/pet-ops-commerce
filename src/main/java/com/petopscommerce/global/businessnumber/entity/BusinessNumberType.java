@@ -11,8 +11,11 @@ public enum BusinessNumberType {
     /** - 결제 번호 */
     PAYMENT("PAY", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),
 
-    /** - 출고 번호 */
-    SHIPMENT("SHP", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),
+    /** - 관리자 판매 주문 번호 */
+    SALES_ORDER("SOR", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),
+
+    /** - 창고 출고 주문 번호 */
+    SHIPMENT_ORDER("SHP", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),
 
     /** - 재고 이동 번호 */
     STOCK_MOVE("STM", "yyyyMMdd", 6, BusinessNumberResetCycle.DAILY, BusinessNumberScopeType.GLOBAL, "-", 100),

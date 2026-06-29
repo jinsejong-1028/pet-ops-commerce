@@ -7,10 +7,10 @@
 | 구분 | 현재 상태 |
 |---|---|
 | 기준 날짜 | 2026-06-29 |
-| 현재 브랜치 | `docs/reorganize-documentation` |
-| Git 상태 | 문서 폴더 구조 개편과 README 추가 중 |
-| 마지막 완료 작업 | `docs/update-current-project-docs` |
-| 다음 추천 작업 | `feature/order-fulfillment-workflow` |
+| 현재 브랜치 | `feature/order-fulfillment-workflow` |
+| Git 상태 | 주문 fulfillment workflow 구현 중 |
+| 마지막 완료 작업 | `docs/reorganize-documentation` |
+| 다음 추천 작업 | `feature/order-fulfillment-workflow` 마무리 점검 |
 
 ## Phase 0. 설계 - 완료
 
@@ -66,14 +66,14 @@
 - `/members/me` 중심 회원 조회 정책 정리
 - 관리자 API 접근 정책 정리
 
-## Phase 4. 재고와 주문 운영 흐름 - 진행 예정
+## Phase 4. 재고와 주문 운영 흐름 - 진행 중
 
-현재 DB schema는 고객 주문 이후의 운영 workflow를 준비해 둔 상태입니다.
+현재 DB schema와 Java service는 고객 주문 이후의 판매 주문/출고 지시 workflow를 구현 중입니다.
 
 출고 흐름:
 
 ```text
-orders
+customer_orders
 -> sales_orders
 -> shipment_orders
 -> stock_jobs(reference_type = SHIPMENT_ORDER)
@@ -97,8 +97,9 @@ feature/order-fulfillment-workflow
 
 목표:
 
-- 고객 주문을 판매 주문으로 확정
-- 판매 주문 기반 출고 지시 생성
+- 고객 주문 생성 시 판매 주문 CREATED 자동 생성
+- 판매 주문 confirm/cancel API 구현
+- 판매 주문 확정 시 고객 주문 CONFIRMED 처리와 출고 지시 생성
 - 출고 지시 품목별 할당/피킹/출고 수량 관리
 - 구매 발주와 입고 지시 생성
 - 입고 지시 확정 시 LOT/현재고 반영
