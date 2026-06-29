@@ -54,7 +54,6 @@ class StockControllerTest {
                 100,
                 3,
                 97,
-                10,
                 LocalDateTime.of(2026, 6, 24, 10, 0)
         );
         when(stockService.getStocks(1L, 2L, 3L)).thenReturn(List.of(response));
@@ -84,7 +83,6 @@ class StockControllerTest {
                 100,
                 3,
                 97,
-                10,
                 LocalDateTime.of(2026, 6, 24, 10, 0)
         );
         when(stockService.getStock(5L)).thenReturn(response);

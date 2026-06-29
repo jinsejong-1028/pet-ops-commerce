@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * - 관리자 재고 명령 비즈니스 로직
@@ -86,7 +87,7 @@ public class StockCommandService {
         // 단계 3: 입고 작업 job 생성
         // 결과: RECEIVE_IN movement를 같은 jobNo로 추적 가능
         String jobNo = businessNumberGenerator.generate(BusinessNumberType.STOCK_MOVE);
-        StockJob stockJob = stockJobRepository.save(StockJob.createInbound(jobNo, request.warehouseId(), request.reason()));
+        StockJob stockJob = stockJobRepository.save(StockJob.createInbound(jobNo, request.warehouseId(), request.reason(), LocalDateTime.now(clock)));
 
         // 단계 4: 현재고 생성 또는 증가
         // 결과: stock row가 없으면 만들고, 있으면 total/available만 증가
@@ -97,7 +98,6 @@ public class StockCommandService {
                 location.getId(),
                 lot.getId(),
                 request.quantity(),
-                request.safetyQuantity() != null ? request.safetyQuantity() : 0,
                 request.reason()
         );
 
@@ -118,7 +118,7 @@ public class StockCommandService {
 
         Stock stock = stockOperationService.getStockForUpdate(request.stockId());
         String jobNo = businessNumberGenerator.generate(BusinessNumberType.STOCK_MOVE);
-        StockJob stockJob = stockJobRepository.save(StockJob.createAdjustment(jobNo, stock.getWarehouseId(), request.reason()));
+        StockJob stockJob = stockJobRepository.save(StockJob.createAdjustment(jobNo, stock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
         Stock adjustedStock = stockOperationService.adjust(stockJob, stock, request.quantity(), request.reason());
 
         return StockResponse.from(adjustedStock);
@@ -140,7 +140,7 @@ public class StockCommandService {
         }
 
         String jobNo = businessNumberGenerator.generate(BusinessNumberType.STOCK_MOVE);
-        StockJob stockJob = stockJobRepository.save(StockJob.createTransfer(jobNo, sourceStock.getWarehouseId(), request.reason()));
+        StockJob stockJob = stockJobRepository.save(StockJob.createTransfer(jobNo, sourceStock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
         Stock targetStock = stockOperationService.moveAvailableToLocation(stockJob, sourceStock, toLocation.getId(), request.quantity(), request.reason());
 
         return StockResponse.from(targetStock);

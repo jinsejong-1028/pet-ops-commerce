@@ -71,13 +71,6 @@ public class Stock extends BaseAuditEntity {
     private Integer workingQuantity;
 
     /**
-     * - 안전재고 수량
-     * - 가용수량이 이 값 이하이면 보충 검토 대상
-     */
-    @Column(name = "safety_quantity", nullable = false)
-    private Integer safetyQuantity;
-
-    /**
      * - 낙관적 잠금 version
      * - 재고 차감 단계에서 동시 수정 충돌 감지에 사용
      */
@@ -89,7 +82,7 @@ public class Stock extends BaseAuditEntity {
         // JPA 기본 생성자
     }
 
-    private Stock(Long productId, Long warehouseId, Long locationId, Long lotId, Integer totalQuantity, Integer availableQuantity, Integer workingQuantity, Integer safetyQuantity) {
+    private Stock(Long productId, Long warehouseId, Long locationId, Long lotId, Integer totalQuantity, Integer availableQuantity, Integer workingQuantity) {
         this.productId = productId;
         this.warehouseId = warehouseId;
         this.locationId = locationId;
@@ -97,7 +90,6 @@ public class Stock extends BaseAuditEntity {
         this.totalQuantity = totalQuantity;
         this.availableQuantity = availableQuantity;
         this.workingQuantity = workingQuantity;
-        this.safetyQuantity = safetyQuantity;
     }
 
     /**
@@ -109,13 +101,11 @@ public class Stock extends BaseAuditEntity {
      * @param locationId location ID
      * @param lotId LOT ID
      * @param totalQuantity 총수량
-     * @param safetyQuantity 안전재고 수량
      * @return 신규 현재고 Entity
      */
-    public static Stock create(Long productId, Long warehouseId, Long locationId, Long lotId, Integer totalQuantity, Integer safetyQuantity) {
+    public static Stock create(Long productId, Long warehouseId, Long locationId, Long lotId, Integer totalQuantity) {
         validatePositiveQuantity(totalQuantity);
-        validateNonNegativeQuantity(safetyQuantity, "safety quantity must not be negative");
-        return new Stock(productId, warehouseId, locationId, lotId, totalQuantity, totalQuantity, 0, safetyQuantity);
+        return new Stock(productId, warehouseId, locationId, lotId, totalQuantity, totalQuantity, 0);
     }
 
     /**
@@ -127,13 +117,11 @@ public class Stock extends BaseAuditEntity {
      * @param locationId location ID
      * @param lotId LOT ID
      * @param workingQuantity 작업수량
-     * @param safetyQuantity 안전재고 수량
      * @return 신규 현재고 Entity
      */
-    public static Stock createWorking(Long productId, Long warehouseId, Long locationId, Long lotId, Integer workingQuantity, Integer safetyQuantity) {
+    public static Stock createWorking(Long productId, Long warehouseId, Long locationId, Long lotId, Integer workingQuantity) {
         validatePositiveQuantity(workingQuantity);
-        validateNonNegativeQuantity(safetyQuantity, "safety quantity must not be negative");
-        return new Stock(productId, warehouseId, locationId, lotId, workingQuantity, 0, workingQuantity, safetyQuantity);
+        return new Stock(productId, warehouseId, locationId, lotId, workingQuantity, 0, workingQuantity);
     }
 
     /**
@@ -290,12 +278,6 @@ public class Stock extends BaseAuditEntity {
         }
     }
 
-    private static void validateNonNegativeQuantity(Integer quantity, String message) {
-        if (quantity == null || quantity < 0) {
-            throw new IllegalArgumentException(message);
-        }
-    }
-
     public Long getId() {
         return id;
     }
@@ -326,10 +308,6 @@ public class Stock extends BaseAuditEntity {
 
     public Integer getWorkingQuantity() {
         return workingQuantity;
-    }
-
-    public Integer getSafetyQuantity() {
-        return safetyQuantity;
     }
 
     public Long getVersion() {

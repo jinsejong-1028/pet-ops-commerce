@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
  * @param totalQuantity 총수량
  * @param workingQuantity 작업수량
  * @param availableQuantity 가용수량
- * @param safetyQuantity 안전재고 수량
  * @param createdAt 생성 일시
  */
 public record StockResponse(
@@ -27,7 +26,6 @@ public record StockResponse(
         Integer totalQuantity,
         Integer workingQuantity,
         Integer availableQuantity,
-        Integer safetyQuantity,
         LocalDateTime createdAt
 ) {
 
@@ -47,7 +45,6 @@ public record StockResponse(
                 stock.getTotalQuantity(),
                 stock.getWorkingQuantity(),
                 stock.getAvailableQuantity(),
-                stock.getSafetyQuantity(),
                 stock.getCreatedAt()
         );
     }

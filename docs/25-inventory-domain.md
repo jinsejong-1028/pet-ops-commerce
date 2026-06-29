@@ -147,8 +147,7 @@ GET /api/v1/admin/stocks/{stockId}
     "lotId": 1,
     "totalQuantity": 100,
     "workingQuantity": 3,
-    "availableQuantity": 97,
-    "safetyQuantity": 10
+    "availableQuantity": 97
   },
   "message": "OK"
 }
@@ -218,14 +217,14 @@ QueryDSL Q class는 Gradle annotation processor가 생성합니다.
 
 ```text
 stock_jobs
-= 작업 헤더, 현재 상태
+= 작업 헤더, 현재 상태와 완료/삭제 시각
 
 stock_movements
 = 재고 증감/이동 원장, append-only 이력
 ```
 
-`stock_jobs`는 출고, 입고, 조정, 이동 같은 작업 묶음의 현재 상태를 관리합니다.
-운영 화면에서 "이 작업이 어디까지 진행됐는지" 확인하는 기준입니다.
+`stock_jobs`는 출고처럼 단계가 있는 작업의 현재 상태를 관리합니다.
+입고성 재고 반영, 수동 조정, 일반 location 이동처럼 별도 단계가 없는 작업도 같은 jobNo로 movement를 묶되, 생성과 동시에 `completed_at`을 기록합니다.
 
 ```text
 job_no
@@ -235,21 +234,37 @@ reference_type
 reference_id
 status
 reason
+completed_at
+deleted_at
 ```
 
+`job_type`은 재고 작업 자체의 유형입니다.
+`reference_type`과 `reference_id`는 판매주문, 입고오더처럼 작업을 발생시킨 외부 업무가 있을 때만 사용합니다.
+따라서 현재 직접 입고, 수동 조정, 일반 location 이동처럼 외부 참조 업무가 없으면 둘 다 `null`로 둡니다.
+
 `stock_movements`는 실제 stock row의 수량 변화 내역을 누적합니다.
-`quantity`는 해당 location 기준 증감 방향을 부호로 표현하고, `total_quantity_delta`, `working_quantity_delta`로 어떤 수량 컬럼이 바뀌었는지 남깁니다.
+`quantity`는 이번 movement의 처리 수량이고, `total_quantity`는 movement 처리 후 해당 stock row의 총수량 snapshot입니다.
+`available_quantity`, `working_quantity`는 현재고 상태 컬럼이므로 원장에는 저장하지 않습니다.
 
 ```text
 movement_type
-location_id
 from_location_id
 to_location_id
 product_id
 lot_id
 quantity
-total_quantity_delta
-working_quantity_delta
+total_quantity
+```
+
+위치 기준은 아래처럼 해석합니다.
+
+```text
+RECEIVE_IN: from_location_id null, to_location_id 입고 location
+ADJUST: from_location_id 조정 location, to_location_id null
+ALLOCATE: from_location_id 할당 location, to_location_id null
+TRANSFER_OUT/TRANSFER_IN: from_location_id 출발 location, to_location_id 도착 location
+PICK_OUT/PICK_IN: from_location_id 보관 location, to_location_id PICKTO location
+SHIP_OUT: from_location_id PICKTO location, to_location_id null
 ```
 
 예시:
@@ -257,25 +272,20 @@ working_quantity_delta
 ```text
 ALLOCATE
 - quantity: 3
-- total_quantity_delta: 0
-- working_quantity_delta: +3
+- total_quantity: 100
 
 PICK_OUT
 - quantity: -3
-- total_quantity_delta: -3
-- working_quantity_delta: -3
+- total_quantity: 97
 
 PICK_IN
 - quantity: +3
-- total_quantity_delta: +3
-- working_quantity_delta: +3
+- total_quantity: 3
 
 SHIP_OUT
 - quantity: -3
-- total_quantity_delta: -3
-- working_quantity_delta: -3
+- total_quantity: 0
 ```
-
 ## 재고 작업 API
 
 ### 재고 할당
@@ -412,6 +422,7 @@ productId + warehouseId + locationId + lotId 현재고 잠금 조회
 현재고 없으면 신규 stock 생성
 stock_jobs INBOUND 생성
 stock_movements RECEIVE_IN 저장
+stock_jobs completed_at 기록
 ```
 
 LOT 업무 번호는 공통 업무번호 생성기를 사용합니다. `BusinessNumberType.LOT` 기본값으로 rule이 자동 생성되므로 LOT rule은 migration seed로 넣지 않습니다.
@@ -463,4 +474,4 @@ working_quantity >= 0
 total_quantity >= 0
 ```
 
-`stock_movements`에도 `available_quantity_delta`를 추가해 어떤 수량이 바뀌었는지 원장에 남깁니다.
+`stock_movements`는 `quantity`와 처리 후 `total_quantity` snapshot만 저장하고, 가용수량/작업수량은 `stocks` 현재 상태로 관리합니다.

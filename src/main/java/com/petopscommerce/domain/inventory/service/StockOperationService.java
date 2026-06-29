@@ -57,17 +57,16 @@ public class StockOperationService {
      * @param locationId location ID
      * @param lotId LOT ID
      * @param quantity 입고 수량
-     * @param safetyQuantity 안전재고 수량
      * @param reason 입고 사유
      * @return 변경된 현재고
      */
-    public Stock receive(StockJob job, Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, Integer safetyQuantity, String reason) {
+    public Stock receive(StockJob job, Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, String reason) {
         // 단계 1: 가용수량 증가 delta를 현재고에 반영
         // 결과: 동일 현재고가 있으면 증가하고, 없으면 입고 수량만큼 신규 row 생성
-        Stock stock = applyStockDelta(productId, warehouseId, locationId, lotId, quantity, StockQuantityBucket.AVAILABLE, safetyQuantity);
+        Stock stock = applyStockDelta(productId, warehouseId, locationId, lotId, quantity, StockQuantityBucket.AVAILABLE);
 
         // 단계 2: 입고 원장 저장
-        // 결과: RECEIVE_IN movement에 total/available 증가량 기록
+        // 결과: 처리 수량과 처리 후 total_quantity snapshot 기록
         stockMovementRepository.save(StockMovement.create(
                 job,
                 stock,
@@ -75,9 +74,6 @@ public class StockOperationService {
                 null,
                 locationId,
                 quantity,
-                quantity,
-                quantity,
-                0,
                 reason
         ));
 
@@ -102,10 +98,7 @@ public class StockOperationService {
                 stock,
                 StockMovementType.ALLOCATE,
                 stock.getLocationId(),
-                stock.getLocationId(),
-                quantity,
-                0,
-                -quantity,
+                null,
                 quantity,
                 reason
         ));
@@ -137,8 +130,7 @@ public class StockOperationService {
                 toLocationId,
                 sourceStock.getLotId(),
                 quantity,
-                StockQuantityBucket.AVAILABLE,
-                sourceStock.getSafetyQuantity()
+                StockQuantityBucket.AVAILABLE
         );
 
         stockMovementRepository.save(StockMovement.create(
@@ -148,9 +140,6 @@ public class StockOperationService {
                 sourceStock.getLocationId(),
                 toLocationId,
                 -quantity,
-                -quantity,
-                -quantity,
-                0,
                 reason
         ));
         stockMovementRepository.save(StockMovement.create(
@@ -160,9 +149,6 @@ public class StockOperationService {
                 sourceStock.getLocationId(),
                 toLocationId,
                 quantity,
-                quantity,
-                quantity,
-                0,
                 reason
         ));
 
@@ -193,8 +179,7 @@ public class StockOperationService {
                 toLocationId,
                 sourceStock.getLotId(),
                 quantity,
-                StockQuantityBucket.WORKING,
-                sourceStock.getSafetyQuantity()
+                StockQuantityBucket.WORKING
         );
 
         stockMovementRepository.save(StockMovement.create(
@@ -204,9 +189,6 @@ public class StockOperationService {
                 sourceStock.getLocationId(),
                 toLocationId,
                 -quantity,
-                -quantity,
-                0,
-                -quantity,
                 reason
         ));
         stockMovementRepository.save(StockMovement.create(
@@ -215,9 +197,6 @@ public class StockOperationService {
                 StockMovementType.PICK_IN,
                 sourceStock.getLocationId(),
                 toLocationId,
-                quantity,
-                quantity,
-                0,
                 quantity,
                 reason
         ));
@@ -245,9 +224,6 @@ public class StockOperationService {
                 stock.getLocationId(),
                 null,
                 -quantity,
-                -quantity,
-                0,
-                -quantity,
                 reason
         ));
 
@@ -272,11 +248,8 @@ public class StockOperationService {
                 stock,
                 StockMovementType.ADJUST,
                 stock.getLocationId(),
-                stock.getLocationId(),
+                null,
                 signedQuantity,
-                signedQuantity,
-                signedQuantity,
-                0,
                 reason
         ));
 
@@ -293,10 +266,9 @@ public class StockOperationService {
      * @param lotId LOT ID
      * @param quantityDelta 부호가 있는 변경 수량
      * @param bucket 변경 대상 수량 유형
-     * @param safetyQuantity 신규 생성 시 안전재고 수량
      * @return 변경된 현재고
      */
-    private Stock applyStockDelta(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket, Integer safetyQuantity) {
+    private Stock applyStockDelta(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket) {
         validateNonZeroDelta(quantityDelta);
 
         // 단계 1: 동일 현재고 row를 잠금 조회
@@ -306,7 +278,7 @@ public class StockOperationService {
                     applyDeltaToStock(stock, quantityDelta, bucket);
                     return stock;
                 })
-                .orElseGet(() -> createStockByPositiveDelta(productId, warehouseId, locationId, lotId, quantityDelta, bucket, safetyQuantity));
+                .orElseGet(() -> createStockByPositiveDelta(productId, warehouseId, locationId, lotId, quantityDelta, bucket));
     }
 
     /**
@@ -319,16 +291,15 @@ public class StockOperationService {
      * @param lotId LOT ID
      * @param quantityDelta 양수 변경 수량
      * @param bucket 생성할 수량 유형
-     * @param safetyQuantity 안전재고 수량
      * @return 신규 현재고
      */
-    private Stock createStockByPositiveDelta(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket, Integer safetyQuantity) {
+    private Stock createStockByPositiveDelta(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket) {
         if (quantityDelta < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "stock is not enough");
         }
 
         try {
-            return stockRepository.saveAndFlush(createStock(productId, warehouseId, locationId, lotId, quantityDelta, bucket, safetyQuantity));
+            return stockRepository.saveAndFlush(createStock(productId, warehouseId, locationId, lotId, quantityDelta, bucket));
         } catch (DataIntegrityViolationException exception) {
             return retryApplyDeltaAfterDuplicate(productId, warehouseId, locationId, lotId, quantityDelta, bucket, exception);
         }
@@ -364,15 +335,14 @@ public class StockOperationService {
      * @param lotId LOT ID
      * @param quantity 생성 수량
      * @param bucket 생성할 수량 유형
-     * @param safetyQuantity 안전재고 수량
      * @return 신규 현재고
      */
-    private Stock createStock(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket, Integer safetyQuantity) {
+    private Stock createStock(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket) {
         if (bucket == StockQuantityBucket.WORKING) {
-            return Stock.createWorking(productId, warehouseId, locationId, lotId, quantity, safetyQuantity);
+            return Stock.createWorking(productId, warehouseId, locationId, lotId, quantity);
         }
 
-        return Stock.create(productId, warehouseId, locationId, lotId, quantity, safetyQuantity);
+        return Stock.create(productId, warehouseId, locationId, lotId, quantity);
     }
 
     /**
