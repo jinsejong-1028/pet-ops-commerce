@@ -23,7 +23,7 @@ Authorization: Bearer {{accessToken}}
 }
 
 
-### Create NOMAL location
+### Create NORMAL location
 # 이번 테스트에서는 입고 후 바로 적치된 일반 location을 생성합니다.
 POST http://localhost:8080/api/v1/admin/locations
 Content-Type: application/json
@@ -33,14 +33,14 @@ Authorization: Bearer {{accessToken}}
   "warehouseId": 1,
   "code": "A-01-01",
   "name": "A Rack 01-01",
-  "locationType": "NOMAL"
+  "locationType": "NORMAL"
 }
 
 
 
 ### Create STAGE location
 # 실제 입고 흐름에서는 입고 대기장 location을 먼저 사용할 수 있습니다.
-# 이번 테스트 흐름에서는 바로 NOMAL location에 입고하므로 필요할 때만 실행합니다.
+# 이번 테스트 흐름에서는 바로 NORMAL location에 입고하므로 필요할 때만 실행합니다.
 POST http://localhost:8080/api/v1/admin/locations
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}

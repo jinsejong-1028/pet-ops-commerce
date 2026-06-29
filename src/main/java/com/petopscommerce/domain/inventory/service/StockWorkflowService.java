@@ -107,7 +107,7 @@ public class StockWorkflowService {
         Stock sourceStock = stockOperationService.getStockForUpdate(allocationMovement.getStockId());
 
         // 단계 3: 같은 창고의 활성 PICKTO location 검증
-        // 결과: 창고를 건너뛰거나 NOMAL이 아닌 location으로 PICK하는 잘못된 이동을 차단
+        // 결과: 창고를 건너뛰거나 NORMAL이 아닌 location으로 PICK하는 잘못된 이동을 차단
         Location picktoLocation = getPicktoLocation(request.picktoLocationId(), stockJob.getWarehouseId());
 
         // 단계 4: 작업수량 이동과 원장 저장을 공통 재고 서비스에 위임

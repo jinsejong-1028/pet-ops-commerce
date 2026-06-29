@@ -60,7 +60,7 @@ location 유형은 아래처럼 시작합니다.
 | 유형 | 의미 |
 |---|---|
 | `STAGE` | 입고 대기장 location |
-| `NOMAL` | 일반 보관 location |
+| `NORMAL` | 일반 보관 location |
 | `PICKTO` | 피킹 완료 후 출고 전 대기 location |
 
 ## 할당, PICK, 출고 흐름
@@ -69,14 +69,14 @@ location 유형은 아래처럼 시작합니다.
 
 ```text
 할당
-- NOMAL location에서 주문에 사용할 재고를 찜
+- NORMAL location에서 주문에 사용할 재고를 찜
 - total_quantity 유지
 - working_quantity 증가
 - available_quantity 감소
 
 PICK
-- NOMAL location에서 PICKTO location으로 재고 이동
-- NOMAL location: total_quantity 감소, working_quantity 감소
+- NORMAL location에서 PICKTO location으로 재고 이동
+- NORMAL location: total_quantity 감소, working_quantity 감소
 - PICKTO location: total_quantity 증가, working_quantity 증가
 - 창고 전체 총수량은 유지
 
@@ -297,7 +297,7 @@ POST /api/v1/admin/stocks/allocate
 처리:
 
 ```text
-NOMAL stock
+NORMAL stock
 - total_quantity 유지
 - working_quantity 증가
 
