@@ -5,10 +5,10 @@
 - DB 레벨 FK 제약은 걸지 않습니다.
 - `*_id` 컬럼과 인덱스로 논리 관계를 표현합니다.
 - 관계 검증은 서비스 로직과 테스트에서 처리합니다.
-- 주요 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`를 둡니다.
+- 주요 테이블에는 `created_at`, `created_by`, `updated_at`, `updated_by`, `deleted_at`을 공통 audit 컬럼으로 둡니다.
 - LOT 정보는 `lot1` ~ `lot5`로 관리하고, 상세 의미는 문서와 comment로 설명합니다.
 - 재고는 `창고 -> location -> 상품/LOT 현재고` 순서로 관리합니다.
-- 재고 가용수량은 `total_quantity - working_quantity`로 계산합니다.
+- 재고 가용수량은 `stocks.available_quantity`로 저장하고 `total_quantity = available_quantity + working_quantity` 제약으로 관리합니다.
 
 ## 상품 소유 모델
 
@@ -289,4 +289,60 @@ PICK
 - PICKTO location에서 실제 출고
 - PICKTO location: total_quantity 감소, working_quantity 감소
 - 창고 전체 총수량 감소
+```
+## 주문/출고/입고 업무 흐름
+
+고객 주문과 창고 작업은 아래처럼 분리합니다.
+
+```text
+orders
+= 고객 주문
+
+order_deliveries
+= 고객 주문 배송 정보
+
+sales_orders
+= 관리자가 고객 주문을 확정한 내부 판매 주문
+
+shipment_orders
+= 판매 주문을 바탕으로 창고가 처리할 출고 지시
+
+purchase_orders
+= 운영사가 공급사에 넣는 구매 발주
+
+receiving_orders
+= 구매 발주를 바탕으로 창고가 처리할 입고 지시
+```
+
+출고 흐름:
+
+```text
+orders
+-> sales_orders
+-> shipment_orders
+-> stock_jobs(reference_type = SHIPMENT_ORDER)
+-> stock_movements
+```
+
+입고 흐름:
+
+```text
+purchase_orders
+-> receiving_orders
+-> stock_jobs(reference_type = RECEIVING_ORDER)
+-> stock_movements
+```
+
+수량 진행률은 출고/입고 품목 단위로 관리합니다.
+
+```text
+shipment_order_items
+- order_quantity
+- allocated_quantity
+- picked_quantity
+- shipped_quantity
+
+receiving_order_items
+- order_quantity
+- received_quantity
 ```

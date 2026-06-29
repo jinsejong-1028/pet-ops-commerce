@@ -15,6 +15,7 @@ create table business_number_rules (
     created_by bigint,
     updated_at timestamp not null default current_timestamp,
     updated_by bigint,
+    deleted_at timestamp,
     constraint uk_business_number_rules_code unique (code),
     constraint chk_business_number_rules_sequence_width_positive check (sequence_width > 0),
     constraint chk_business_number_rules_allocation_size_positive check (allocation_size > 0)
@@ -30,7 +31,10 @@ create table business_number_sequences (
     next_value bigint not null,
     version bigint not null default 0,
     created_at timestamp not null default current_timestamp,
+    created_by bigint,
     updated_at timestamp not null default current_timestamp,
+    updated_by bigint,
+    deleted_at timestamp,
     constraint uk_business_number_sequences_key unique (rule_code, scope_key, sequence_period),
     constraint chk_business_number_sequences_next_value_positive check (next_value > 0)
 );
