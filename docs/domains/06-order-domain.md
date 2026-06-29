@@ -108,7 +108,7 @@ BusinessNumberGenerator
 ```
 
 번호 규칙과 현재 순번은 DB에서 관리하고, 애플리케이션은 번호 구간을 한 번에 확보해 사용합니다.
-상세 설계는 `31-business-number-generator.md`에 정리합니다.
+상세 설계는 [Business Number Generator](../common/06-business-number-generator.md)에 정리합니다.
 
 ## 주문 금액 기준
 

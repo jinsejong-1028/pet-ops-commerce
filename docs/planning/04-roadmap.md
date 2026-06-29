@@ -7,9 +7,9 @@
 | 구분 | 현재 상태 |
 |---|---|
 | 기준 날짜 | 2026-06-29 |
-| 현재 브랜치 | `docs/update-current-project-docs` |
-| Git 상태 | 전체 프로젝트 문서 최신화 중 |
-| 마지막 완료 작업 | `fix/location-type-normal-typo` |
+| 현재 브랜치 | `docs/reorganize-documentation` |
+| Git 상태 | 문서 폴더 구조 개편과 README 추가 중 |
+| 마지막 완료 작업 | `docs/update-current-project-docs` |
 | 다음 추천 작업 | `feature/order-fulfillment-workflow` |
 
 ## Phase 0. 설계 - 완료

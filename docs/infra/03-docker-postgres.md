@@ -15,7 +15,7 @@
 |---|---|
 | `docker-compose.yml` | PostgreSQL 컨테이너 실행 설정 |
 | `application.properties` | Spring Boot DB/JPA/Flyway 연결 설정 |
-| `docs/12-docker-postgres.md` | Docker PostgreSQL 구성 설명 문서 |
+| `docs/infra/03-docker-postgres.md` | Docker PostgreSQL 구성 설명 문서 |
 
 ## docker-compose.yml 구조
 

@@ -24,7 +24,7 @@
 
 기본 DB는 PostgreSQL로 확정합니다. 기존 MySQL 실무 경험은 버리는 것이 아니라, PostgreSQL과 비교하며 RDBMS 설계 역량을 확장하는 근거로 사용합니다.
 
-자세한 비교와 비용 전략은 [DB 선택과 비용 전략](08-database-and-cost-strategy.md)에 정리합니다.
+자세한 비교와 비용 전략은 [DB 선택과 비용 전략](04-database-and-cost-strategy.md)에 정리합니다.
 ## 분산 처리
 
 | 기술 | 사용 위치 |
