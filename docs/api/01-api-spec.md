@@ -8,6 +8,24 @@
 - 관리자 API는 `/admin/**` 경로를 사용합니다.
 - 현재 권한은 인증 사용자 중심이며, 운영 목표는 `ADMIN`, `OPERATOR`, `MEMBER` 역할로 세분화하는 것입니다.
 
+
+## OpenAPI / Swagger UI
+
+서버 실행 후 브라우저에서 자동 생성 API 문서를 확인할 수 있습니다.
+
+| 항목 | URL | 설명 |
+|---|---|---|
+| Swagger UI | `http://localhost:8080/swagger-ui.html` | API 목록, 요청/응답 모델, 인증 입력 화면 |
+| OpenAPI JSON | `http://localhost:8080/v3/api-docs` | 도구 연동용 OpenAPI 3 JSON 명세 |
+
+JWT가 필요한 API는 Swagger UI 오른쪽 상단 `Authorize` 버튼에 아래 형식으로 access token을 입력한 뒤 호출합니다.
+
+```text
+Bearer {accessToken}
+```
+
+현재 Swagger UI에는 실제 Controller로 구현된 Health, Auth, Member, Product, Inventory, Order, Sales Order API가 표시됩니다.
+
 ## 인증
 
 | Method | Path | 설명 | 권한 |

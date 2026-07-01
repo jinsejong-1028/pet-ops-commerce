@@ -2,6 +2,7 @@ package com.petopscommerce.domain.order.dto;
 
 import com.petopscommerce.domain.order.entity.SalesOrder;
 import com.petopscommerce.domain.order.entity.ShipmentOrder;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,19 +25,45 @@ import java.time.LocalDateTime;
  * @param confirmedAt 판매 주문 확정 일시
  * @param canceledAt 판매 주문 취소 일시
  */
+@Schema(description = "관리자 판매 주문 응답")
 public record SalesOrderResponse(
+        @Schema(description = "판매 주문 ID", example = "1")
         Long salesOrderId,
+
+        @Schema(description = "판매 주문 번호", example = "SO-20260701-000001")
         String salesOrderNo,
+
+        @Schema(description = "판매 주문 상태", example = "CONFIRMED")
         String salesOrderStatus,
+
+        @Schema(description = "판매 주문 업무일자", example = "2026-07-01")
         LocalDate orderDate,
+
+        @Schema(description = "원천 고객 주문 ID", example = "1")
         Long customerOrderId,
+
+        @Schema(description = "판매 주문 출고 창고 ID", example = "1")
         Long warehouseId,
+
+        @Schema(description = "출고 주문 ID", example = "1")
         Long shipmentOrderId,
+
+        @Schema(description = "출고 주문 번호", example = "SHP-20260701-000001")
         String shipmentOrderNo,
+
+        @Schema(description = "출고 주문 상태", example = "CREATED")
         String shipmentOrderStatus,
+
+        @Schema(description = "출고 예정일", example = "2026-07-01")
         LocalDate scheduledShipDate,
+
+        @Schema(description = "판매 주문 또는 출고 주문 품목 수", example = "1")
         Integer itemCount,
+
+        @Schema(description = "판매 주문 확정 일시", example = "2026-07-01T10:00:00")
         LocalDateTime confirmedAt,
+
+        @Schema(description = "판매 주문 취소 일시", example = "2026-07-01T11:00:00")
         LocalDateTime canceledAt
 ) {
 

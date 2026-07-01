@@ -2,6 +2,7 @@ package com.petopscommerce.domain.inventory.dto;
 
 import com.petopscommerce.domain.inventory.entity.Warehouse;
 import com.petopscommerce.domain.inventory.entity.WarehouseStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
@@ -14,11 +15,21 @@ import java.time.LocalDateTime;
  * @param status 창고 상태
  * @param createdAt 생성 일시
  */
+@Schema(description = "창고 응답")
 public record WarehouseResponse(
+        @Schema(description = "창고 ID", example = "1")
         Long id,
+
+        @Schema(description = "창고 코드", example = "WH-SEOUL")
         String code,
+
+        @Schema(description = "창고명", example = "서울 메인 창고")
         String name,
+
+        @Schema(description = "창고 상태", example = "ACTIVE")
         WarehouseStatus status,
+
+        @Schema(description = "생성 일시", example = "2026-07-01T10:00:00")
         LocalDateTime createdAt
 ) {
 

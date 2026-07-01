@@ -1,6 +1,7 @@
 package com.petopscommerce.domain.inventory.dto;
 
 import com.petopscommerce.domain.inventory.entity.Stock;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
@@ -17,15 +18,33 @@ import java.time.LocalDateTime;
  * @param availableQuantity 가용수량
  * @param createdAt 생성 일시
  */
+@Schema(description = "현재고 응답")
 public record StockResponse(
+        @Schema(description = "현재고 ID", example = "1")
         Long id,
+
+        @Schema(description = "상품 ID", example = "1")
         Long productId,
+
+        @Schema(description = "창고 ID", example = "1")
         Long warehouseId,
+
+        @Schema(description = "Location ID", example = "1")
         Long locationId,
+
+        @Schema(description = "LOT ID", example = "1")
         Long lotId,
+
+        @Schema(description = "총수량", example = "100")
         Integer totalQuantity,
+
+        @Schema(description = "작업수량", example = "3")
         Integer workingQuantity,
+
+        @Schema(description = "가용수량", example = "97")
         Integer availableQuantity,
+
+        @Schema(description = "생성 일시", example = "2026-07-01T10:00:00")
         LocalDateTime createdAt
 ) {
 

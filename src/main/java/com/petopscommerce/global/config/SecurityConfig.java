@@ -61,6 +61,8 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/v1/health").permitAll()
+                        // Swagger UI와 OpenAPI JSON은 개발자가 API 명세를 확인할 수 있도록 공개합니다.
+                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         // TODO: Auth 기능 안정화 후 회원 조회는 /members/me 중심으로 잠급니다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/members").permitAll()

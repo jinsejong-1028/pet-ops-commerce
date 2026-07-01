@@ -1,5 +1,7 @@
 package com.petopscommerce.global.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * - API 공통 응답 DTO
  * - 성공/실패 응답 모양 통일
@@ -9,9 +11,15 @@ package com.petopscommerce.global.response;
  * @param message 응답 메시지
  * @param <T> 응답 데이터 타입
  */
+@Schema(description = "API 공통 응답 wrapper")
 public record ApiResponse<T>(
+        @Schema(description = "요청 성공 여부", example = "true")
         boolean success,
+
+        @Schema(description = "응답 데이터")
         T data,
+
+        @Schema(description = "응답 메시지", example = "OK")
         String message
 ) {
 
