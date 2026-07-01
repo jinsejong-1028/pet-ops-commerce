@@ -474,23 +474,34 @@ quantity = 0: 오류
 ## StockOperationService 공통화
 
 재고 수량 변경 책임은 `StockOperationService.execute(command)` 단일 public 메서드로 모았습니다.
-입고, 할당, 일반 이동, PICK, 출고, 조정, LOT 변경은 모두 `StockOperationCommand`의 from/to 위치와 `AVAILABLE`/`WORKING` bucket 조합으로 표현합니다.
+외부 업무는 입고, 조정, 이동, 할당 같은 업무별 메서드를 직접 호출하지 않고, `StockOperationCommand`에 source, target, 수량 bucket, movement 기록 계획을 담아 전달합니다.
+
+`StockOperationService` 내부는 업무 enum switch가 아니라 아래 네 가지 primitive 조합으로 동작합니다.
 
 ```text
-RECEIVE: from 없음, target AVAILABLE 증가
-ALLOCATE: 같은 stock 내부 AVAILABLE 감소 + WORKING 증가
-TRANSFER: source AVAILABLE 감소 + target AVAILABLE 증가
-PICK: source WORKING 감소 + PICKTO target WORKING 증가
-SHIP: source WORKING 감소, target 없음
-ADJUST: signed quantity 기준 source AVAILABLE 증감
-LOT_CHANGE: 같은 location에서 source LOT AVAILABLE 감소 + target LOT AVAILABLE 증가
+AVAILABLE 증가
+AVAILABLE 차감
+WORKING 증가
+WORKING 차감
 ```
 
-재고 이동은 from/to location과 lot의 수량 delta로 처리합니다.
-도착 현재고가 없을 때도 `quantity = 0` row를 먼저 만들지 않고, 실제 이동 수량만큼 바로 생성합니다.
-음수 delta인데 현재고가 없거나 수량이 부족하면 재고 부족 오류로 처리합니다.
-현재고가 0이 되어도 row를 즉시 삭제하지 않고 보존하며, 목록 조회에서는 기본 제외하고 `includeZero=true` 요청에서만 포함합니다.
+업무별 처리는 source/target 유무와 bucket 조합으로 표현합니다.
 
+| 업무 | source | target | source bucket | target bucket |
+|---|---|---|---|---|
+| 입고 | 없음 | 입고 location stock key | 없음 | AVAILABLE 증가 |
+| 할당 | 같은 stock | 같은 stock | AVAILABLE 차감 | WORKING 증가 |
+| 일반 이동 | 출발 stock | 도착 location stock key | AVAILABLE 차감 | AVAILABLE 증가 |
+| PICK | 출발 stock | PICKTO location stock key | WORKING 차감 | WORKING 증가 |
+| 출고 | PICKTO stock | 없음 | WORKING 차감 | 없음 |
+| 조정 증가 | 없음 | 대상 stock | 없음 | AVAILABLE 증가 |
+| 조정 차감 | 대상 stock | 없음 | AVAILABLE 차감 | 없음 |
+| LOT 변경 | 기존 LOT stock | 신규 LOT stock key | AVAILABLE 차감 | AVAILABLE 증가 |
+
+도착 현재고가 없을 때도 `quantity = 0` row를 먼저 만들지 않고, 실제 이동 수량만큼 바로 생성합니다.
+동일 key의 현재고가 이미 있으면 해당 row로 병합하고, 동시 생성 충돌이 발생하면 다시 잠금 조회 후 증가 처리합니다.
+차감 시 현재고가 없거나 수량이 부족하면 재고 부족 오류로 처리합니다.
+현재고가 0이 되어도 row를 즉시 삭제하지 않고 보존하며, 목록 조회에서는 기본 제외하고 `includeZero=true` 요청에서만 포함합니다.
 ## 수량 컬럼 기준 변경
 
 가용수량은 계산값으로만 두지 않고 `stocks.available_quantity` 컬럼으로 저장합니다.
