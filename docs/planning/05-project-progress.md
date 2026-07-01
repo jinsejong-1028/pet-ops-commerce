@@ -9,8 +9,8 @@
 | 기준 날짜 | 2026-07-01 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `docs/finalize-stock-operation-handoff` |
-| Git 상태 | 재고 operation 리팩토링 merge 후 문서 handoff 정리 중 |
+| 현재 브랜치 | `refactor/stock-operation-delta-engine` |
+| Git 상태 | 재고 수량 엔진을 source/target/bucket 델타 구조로 리팩토링 중 |
 | 현재 DB | Docker PostgreSQL 16 |
 | 마지막 완료 작업 | `refactor/stock-controller-consolidation` PR merge |
 | 다음 추천 작업 | `feature/shipment-stock-workflow` |
@@ -49,10 +49,10 @@
 
 ## 현재 진행 작업
 
-현재 브랜치는 문서 handoff 정리용입니다.
+현재 브랜치는 재고 수량 엔진 내부 구조 리팩토링용입니다.
 
 ```text
-docs/finalize-stock-operation-handoff
+refactor/stock-operation-delta-engine
 ```
 
 마지막 완료 흐름:
@@ -70,6 +70,7 @@ refactor/stock-controller-consolidation
 - 0수량 stock row는 삭제하지 않고 유지하며 목록 조회 기본값에서는 제외
 - `includeZero=true` 조회 옵션 추가
 - LOT 속성 변경 API `POST /api/v1/admin/stocks/change-lot` 추가
+- `StockOperationService` 내부 업무 타입 switch를 제거하고 4개 수량 primitive 조합으로 처리
 - `LOT_CHANGE_OUT`, `LOT_CHANGE_IN` movement 이력 추가
 
 유지할 주의사항:
@@ -77,7 +78,7 @@ refactor/stock-controller-consolidation
 - 기존 migration은 수정하지 않았습니다.
 - `src/test/**`는 수정하지 않았습니다.
 - 0수량 row는 force delete하지 않고 조회 조건으로 제어합니다.
-- 재고 수량 엔진의 내부 command/result/type은 DB 저장 enum이 아니므로 `entity`가 아니라 `service.operation`에 둡니다.
+- 재고 수량 엔진의 command/result는 DB 저장 Entity가 아니므로 `service.operation`에 둡니다.
 - Codex는 Gradle, Docker, bootRun 명령을 직접 실행하지 않고 사용자에게 명령만 안내합니다.
 
 ## 다음 추천 작업

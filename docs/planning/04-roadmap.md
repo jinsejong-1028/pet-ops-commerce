@@ -7,8 +7,8 @@
 | 구분 | 현재 상태 |
 |---|---|
 | 기준 날짜 | 2026-07-01 |
-| 현재 브랜치 | `docs/finalize-stock-operation-handoff` |
-| Git 상태 | 재고 operation 리팩토링 merge 후 문서 handoff 정리 중 |
+| 현재 브랜치 | `refactor/stock-operation-delta-engine` |
+| Git 상태 | 재고 수량 엔진을 source/target/bucket 델타 구조로 리팩토링 중 |
 | 마지막 완료 작업 | `refactor/stock-controller-consolidation` PR merge |
 | 다음 추천 작업 | `feature/shipment-stock-workflow` |
 
@@ -81,6 +81,7 @@
 - `StockService` facade와 `StockOperationService.execute(command)` 단일 수량 엔진 정리
 - 0수량 stock row 유지와 `includeZero=true` 조회 옵션
 - LOT 속성 변경 API와 `LOT_CHANGE_OUT`/`LOT_CHANGE_IN` 원장 기록
+- `StockOperationService` 내부 업무 타입 switch 제거와 4개 수량 primitive 기반 델타 엔진 정리
 
 현재 출고 목표 흐름:
 

@@ -19,6 +19,7 @@ import com.petopscommerce.domain.inventory.entity.StockJob;
 import com.petopscommerce.domain.inventory.entity.StockJobStatus;
 import com.petopscommerce.domain.inventory.entity.StockMovement;
 import com.petopscommerce.domain.inventory.entity.StockMovementType;
+import com.petopscommerce.domain.inventory.entity.StockQuantityBucket;
 import com.petopscommerce.domain.inventory.repository.LocationRepository;
 import com.petopscommerce.domain.inventory.repository.LotRepository;
 import com.petopscommerce.domain.inventory.repository.StockJobRepository;
@@ -163,13 +164,15 @@ public class StockService {
         // 단계 3: job 생성 후 수량 엔진 실행
         // 결과: 현재고 생성/증가와 RECEIVE_IN movement 저장
         StockJob stockJob = saveJob(StockJob.createInbound(nextStockJobNo(), request.warehouseId(), request.reason(), LocalDateTime.now(clock)));
-        StockOperationResult result = stockOperationService.execute(StockOperationCommand.receive(
+        StockOperationResult result = stockOperationService.execute(StockOperationCommand.increase(
                 stockJob,
                 request.productId(),
                 request.warehouseId(),
                 location.getId(),
                 lot.getId(),
+                StockQuantityBucket.AVAILABLE,
                 request.quantity(),
+                StockMovementType.RECEIVE_IN,
                 request.reason()
         ));
 
@@ -192,11 +195,16 @@ public class StockService {
         }
 
         StockJob stockJob = saveJob(StockJob.createTransfer(nextStockJobNo(), sourceStock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
-        StockOperationResult result = stockOperationService.execute(StockOperationCommand.transfer(
+        StockOperationResult result = stockOperationService.execute(StockOperationCommand.move(
                 stockJob,
                 sourceStock.getId(),
+                StockQuantityBucket.AVAILABLE,
                 toLocation.getId(),
+                null,
+                StockQuantityBucket.AVAILABLE,
                 request.quantity(),
+                StockMovementType.TRANSFER_OUT,
+                StockMovementType.TRANSFER_IN,
                 request.reason()
         ));
 
@@ -220,11 +228,16 @@ public class StockService {
         }
 
         StockJob stockJob = saveJob(StockJob.createLotChange(nextStockJobNo(), sourceStock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
-        StockOperationResult result = stockOperationService.execute(StockOperationCommand.changeLot(
+        StockOperationResult result = stockOperationService.execute(StockOperationCommand.move(
                 stockJob,
                 sourceStock.getId(),
+                StockQuantityBucket.AVAILABLE,
+                null,
                 targetLot.getId(),
+                StockQuantityBucket.AVAILABLE,
                 request.quantity(),
+                StockMovementType.LOT_CHANGE_OUT,
+                StockMovementType.LOT_CHANGE_IN,
                 request.reason()
         ));
 
@@ -245,12 +258,24 @@ public class StockService {
 
         Stock stock = getStockEntity(request.stockId());
         StockJob stockJob = saveJob(StockJob.createAdjustment(nextStockJobNo(), stock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
-        StockOperationResult result = stockOperationService.execute(StockOperationCommand.adjust(
-                stockJob,
-                stock.getId(),
-                request.quantity(),
-                request.reason()
-        ));
+        StockOperationCommand command = request.quantity() > 0
+                ? StockOperationCommand.increaseExisting(
+                        stockJob,
+                        stock.getId(),
+                        StockQuantityBucket.AVAILABLE,
+                        request.quantity(),
+                        StockMovementType.ADJUST,
+                        request.reason()
+                )
+                : StockOperationCommand.decrease(
+                        stockJob,
+                        stock.getId(),
+                        StockQuantityBucket.AVAILABLE,
+                        Math.abs(request.quantity()),
+                        StockMovementType.ADJUST,
+                        request.reason()
+                );
+        StockOperationResult result = stockOperationService.execute(command);
 
         return StockResponse.from(result.changedStock());
     }
@@ -272,10 +297,13 @@ public class StockService {
         // 단계 2: 출고 작업 job 생성 후 수량 엔진 실행
         // 결과: total은 유지하고 available 감소, working 증가, ALLOCATE movement 저장
         StockJob stockJob = saveJob(StockJob.createSalesShipment(nextStockJobNo(), sourceStock.getWarehouseId(), request.orderId(), request.reason()));
-        stockOperationService.execute(StockOperationCommand.allocate(
+        stockOperationService.execute(StockOperationCommand.convertBucket(
                 stockJob,
                 sourceStock.getId(),
+                StockQuantityBucket.AVAILABLE,
+                StockQuantityBucket.WORKING,
                 request.quantity(),
+                StockMovementType.ALLOCATE,
                 request.reason()
         ));
 
@@ -299,11 +327,16 @@ public class StockService {
         // 단계 2: PICKTO location 검증 후 수량 엔진 실행
         // 결과: PICK_OUT/PICK_IN 한 쌍의 movement와 PICKTO 현재고 생성 또는 증가
         Location picktoLocation = getPicktoLocation(request.picktoLocationId(), stockJob.getWarehouseId());
-        stockOperationService.execute(StockOperationCommand.pick(
+        stockOperationService.execute(StockOperationCommand.move(
                 stockJob,
                 allocationMovement.getStockId(),
+                StockQuantityBucket.WORKING,
                 picktoLocation.getId(),
+                null,
+                StockQuantityBucket.WORKING,
                 request.quantity(),
+                StockMovementType.PICK_OUT,
+                StockMovementType.PICK_IN,
                 request.reason()
         ));
 
@@ -332,10 +365,12 @@ public class StockService {
 
         // 단계 2: 수량 엔진 실행 후 job 완료 처리
         // 결과: PICKTO total/working 감소와 SHIP_OUT movement 저장
-        stockOperationService.execute(StockOperationCommand.ship(
+        stockOperationService.execute(StockOperationCommand.decrease(
                 stockJob,
                 picktoStock.getId(),
+                StockQuantityBucket.WORKING,
                 request.quantity(),
+                StockMovementType.SHIP_OUT,
                 request.reason()
         ));
         stockJob.markShipped(LocalDateTime.now(clock));
