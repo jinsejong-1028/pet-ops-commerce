@@ -24,6 +24,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	// Swagger UI와 OpenAPI JSON 명세를 자동 생성해 API 테스트와 문서화를 돕습니다.
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17'
 	// Spring Boot 3의 Jakarta Persistence Entity 기준으로 QueryDSL Q class를 생성합니다.
 	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
 	implementation 'org.flywaydb:flyway-core'

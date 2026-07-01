@@ -4,6 +4,9 @@ import com.petopscommerce.domain.product.dto.CreateProductCategoryRequest;
 import com.petopscommerce.domain.product.dto.ProductCategoryResponse;
 import com.petopscommerce.domain.product.service.ProductCategoryService;
 import com.petopscommerce.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +22,7 @@ import java.util.List;
  * - 상품 카테고리 API 진입점
  * - 카테고리 생성/목록 조회 요청 처리
  */
+@Tag(name = "Product", description = "상품 카테고리와 상품 카탈로그 API")
 @RestController
 @RequestMapping("/api/v1/product-categories")
 public class ProductCategoryController {
@@ -40,6 +44,8 @@ public class ProductCategoryController {
      * @param request 상품 카테고리 생성 요청
      * @return 생성된 상품 카테고리 공통 응답
      */
+    @Operation(summary = "상품 카테고리 생성", description = "관리자 또는 운영자가 상품 카테고리를 생성합니다.")
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProductCategoryResponse> createCategory(@Valid @RequestBody CreateProductCategoryRequest request) {
@@ -51,6 +57,7 @@ public class ProductCategoryController {
      *
      * @return 상품 카테고리 목록 공통 응답
      */
+    @Operation(summary = "상품 카테고리 목록 조회", description = "사용 가능한 상품 카테고리 목록을 조회합니다.")
     @GetMapping
     public ApiResponse<List<ProductCategoryResponse>> getCategories() {
         return ApiResponse.ok(productCategoryService.getCategories());

@@ -1,6 +1,7 @@
 package com.petopscommerce.domain.auth.dto;
 
 import com.petopscommerce.domain.member.entity.MemberRole;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * - 로그인 응답 DTO
@@ -13,12 +14,24 @@ import com.petopscommerce.domain.member.entity.MemberRole;
  * @param email 로그인 이메일
  * @param role 회원 권한
  */
+@Schema(description = "로그인 응답")
 public record LoginResponse(
+        @Schema(description = "JWT access token", example = "eyJhbGciOiJIUzI1NiJ9.example")
         String accessToken,
+
+        @Schema(description = "인증 헤더 타입", example = "Bearer")
         String tokenType,
+
+        @Schema(description = "만료 시간 초", example = "3600")
         long expiresIn,
+
+        @Schema(description = "로그인 회원 ID", example = "1")
         Long memberId,
+
+        @Schema(description = "로그인 이메일", example = "admin@petops.com")
         String email,
+
+        @Schema(description = "회원 권한", example = "ADMIN")
         MemberRole role
 ) {
 

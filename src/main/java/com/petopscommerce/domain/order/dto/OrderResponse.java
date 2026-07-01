@@ -3,6 +3,7 @@ package com.petopscommerce.domain.order.dto;
 import com.petopscommerce.domain.order.entity.Order;
 import com.petopscommerce.domain.order.entity.OrderItem;
 import com.petopscommerce.domain.order.entity.OrderStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,15 +21,33 @@ import java.util.List;
  * @param orderedAt 주문 일시
  * @param items 주문 상품 목록
  */
+@Schema(description = "주문 응답")
 public record OrderResponse(
+        @Schema(description = "주문 ID", example = "1")
         Long id,
+
+        @Schema(description = "주문 번호", example = "CO-20260701-000001")
         String orderNo,
+
+        @Schema(description = "주문 회원 ID", example = "1")
         Long memberId,
+
+        @Schema(description = "주문 상태", example = "CREATED")
         OrderStatus status,
+
+        @Schema(description = "상품 합계 금액", example = "64000")
         Integer totalAmount,
+
+        @Schema(description = "할인 금액", example = "0")
         Integer discountAmount,
+
+        @Schema(description = "결제 대상 금액", example = "64000")
         Integer paymentAmount,
+
+        @Schema(description = "주문 일시", example = "2026-07-01T10:00:00")
         LocalDateTime orderedAt,
+
+        @Schema(description = "주문 상품 목록")
         List<OrderItemResponse> items
 ) {
 

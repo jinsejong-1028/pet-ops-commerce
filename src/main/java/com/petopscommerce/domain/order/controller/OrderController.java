@@ -5,6 +5,10 @@ import com.petopscommerce.domain.order.dto.OrderResponse;
 import com.petopscommerce.domain.order.service.OrderService;
 import com.petopscommerce.global.response.ApiResponse;
 import com.petopscommerce.global.security.LoginMember;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
  * - 주문 API 진입점
  * - 주문 생성 요청 처리
  */
+@Tag(name = "Order", description = "고객 주문 생성 API")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrderController {
@@ -40,10 +46,11 @@ public class OrderController {
      * @param request 주문 생성 요청
      * @return 생성된 주문 공통 응답
      */
+    @Operation(summary = "고객 주문 생성", description = "로그인 회원의 고객 주문을 생성하고 판매 주문을 CREATED 상태로 자동 생성합니다.")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<OrderResponse> createOrder(
-            @AuthenticationPrincipal LoginMember loginMember,
+            @Parameter(hidden = true) @AuthenticationPrincipal LoginMember loginMember,
             @Valid @RequestBody CreateOrderRequest request
     ) {
         return ApiResponse.ok(orderService.createOrder(loginMember.id(), request));
