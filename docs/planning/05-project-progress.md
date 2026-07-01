@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-07-01 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `feature/sales-order-warehouse-confirm-flow` |
-| Git 상태 | 판매 주문 창고 지정/확정 흐름 정리 완료, 커밋 전 dirty 상태 |
+| 현재 브랜치 | `main` |
+| Git 상태 | `feature/sales-order-warehouse-confirm-flow` PR merge 완료, clean |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `feature/order-fulfillment-workflow` PR merge |
-| 다음 추천 작업 | `feature/sales-order-warehouse-confirm-flow` 커밋/PR/merge |
+| 마지막 완료 작업 | `feature/sales-order-warehouse-confirm-flow` PR merge |
+| 다음 추천 작업 | `chore/openapi-docs` |
 
 ## 완료 작업
 
@@ -43,16 +43,19 @@
 | 22 | `fix/location-type-normal-typo` | location type 오타를 `NORMAL`로 수정 | `docs/domains/04-inventory-domain.md` |
 | 23 | `docs/update-current-project-docs` | 현재 migration, API, 재고, 주문 workflow 기준으로 프로젝트 문서 최신화 | `docs/architecture/02-erd.md`, `docs/api/01-api-spec.md`, `docs/planning/05-project-progress.md` |
 | 24 | `docs/reorganize-documentation` | 루트 README와 docs 하위 폴더 구조 정리 | `README.md`, `docs/README.md` |
+| 25 | `feature/sales-order-warehouse-confirm-flow` | 판매 주문 창고 지정 후 확정/취소/출고 생성 흐름 정리 | `docs/api/01-api-spec.md`, `docs/architecture/02-erd.md`, `docs/domains/06-order-domain.md`, `docs/logs/2026-07-01.md` |
 
 ## 현재 진행 작업
 
-현재 진행 중인 브랜치:
+현재 진행 중인 기능 브랜치는 없습니다.
+
+마지막 완료 흐름:
 
 ```text
 feature/sales-order-warehouse-confirm-flow
 ```
 
-목표:
+완료 내용:
 
 - 판매 주문에 출고 창고를 먼저 지정하는 `PATCH /api/v1/admin/sales-orders/{salesOrderId}` 추가
 - 판매 주문 확정 API에서 요청 body 제거
@@ -61,33 +64,17 @@ feature/sales-order-warehouse-confirm-flow
 - `customer_order_items.status` 추가 및 확정/취소 상태 동기화
 - `OrderItem`을 공통 audit 상속 구조로 정리해 `updated_by` 자동 기록
 
-현재 주의사항:
+유지할 주의사항:
 
 - 기존 migration은 수정하지 않고 새 `V6__add_sales_order_warehouse_and_customer_order_status.sql` migration을 추가했습니다.
-- `V6`는 이미 로컬 DB에 적용된 뒤 checksum mismatch가 발생했으므로 이후 주석/공백 변경도 금지합니다.
+- `V6`는 이미 로컬 DB에 적용된 이력이 있으므로 이후 주석/공백 변경도 금지합니다.
 - PostgreSQL은 `ALTER TABLE ADD COLUMN`으로 물리 컬럼 순서를 중간에 지정할 수 없습니다. 컬럼 순서는 Entity/문서의 논리 순서와 신규 `create table` 작성 시점에서 관리합니다.
 - migration에는 기존 데이터 보정용 `update/delete/임시 insert`를 넣지 않았습니다.
-- `src/test/**` 파일은 이번 작업에서 수정하지 않았습니다.
 - Codex는 Gradle, Docker, bootRun 명령을 직접 실행하지 않고 사용자에게 명령만 안내합니다.
 
 ## 다음 추천 작업
 
-### 1. 판매 주문 창고 지정/확정 흐름 PR
-
-브랜치 후보:
-
-```text
-feature/sales-order-warehouse-confirm-flow
-```
-
-목표:
-
-- 판매 주문 창고 지정 흐름 검증
-- 판매 주문 확정 시 고객 주문/품목 상태와 출고 주문 생성 검증
-- V6 migration 적용과 Flyway checksum 확인
-- PR 리뷰 후 main merge
-
-### 2. API 문서화
+### 1. API 문서화
 
 브랜치 후보:
 
@@ -117,23 +104,23 @@ chore/openapi-docs
 
 ## 다음 세션 시작 기준
 
-현재 브랜치는 커밋 전 dirty 상태이므로, 새 세션에서는 먼저 변경 파일과 사용자 검증 결과를 리뷰합니다.
+`main`은 판매 주문 창고 지정/확정 흐름 merge가 완료된 clean 상태입니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
-현재 브랜치: feature/sales-order-warehouse-confirm-flow
-현재 상태: 판매 주문 창고 지정/확정 흐름 정리 완료, git status dirty
+현재 브랜치: main
+현재 상태: feature/sales-order-warehouse-confirm-flow PR merge 완료, git status clean
+다음 작업: chore/openapi-docs
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
 petops-portfolio-workflow skill 기준으로 진행
 ```
 
 첫 확인 항목:
 
+- `git checkout main`
+- `git pull`
+- `git checkout -b chore/openapi-docs`
 - `git status --short --branch`
-- 사용자 실행 `compileJava`, `test`, `bootRun` 결과
-- `PATCH /api/v1/admin/sales-orders/{salesOrderId}` 후 `sales_orders.warehouse_id` 저장 여부
-- `POST /api/v1/admin/sales-orders/{salesOrderId}/confirm` 후 고객 주문/품목 상태와 출고 주문 생성 여부
-- `V6__add_sales_order_warehouse_and_customer_order_status.sql` checksum mismatch 재발 여부
 
 ## 검증 기준
 
