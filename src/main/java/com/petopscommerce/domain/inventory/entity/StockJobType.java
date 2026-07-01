@@ -11,6 +11,8 @@ public enum StockJobType {
     ADJUSTMENT,
     /** - location 간 재고 이동 작업 */
     TRANSFER,
+    /** - LOT 속성 변경 작업 */
+    LOT_CHANGE,
     /** - 입고 작업 */
     INBOUND
 }

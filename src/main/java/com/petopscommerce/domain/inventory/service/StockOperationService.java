@@ -1,12 +1,13 @@
 package com.petopscommerce.domain.inventory.service;
 
 import com.petopscommerce.domain.inventory.entity.Stock;
-import com.petopscommerce.domain.inventory.entity.StockJob;
 import com.petopscommerce.domain.inventory.entity.StockMovement;
 import com.petopscommerce.domain.inventory.entity.StockMovementType;
 import com.petopscommerce.domain.inventory.entity.StockQuantityBucket;
 import com.petopscommerce.domain.inventory.repository.StockMovementRepository;
 import com.petopscommerce.domain.inventory.repository.StockRepository;
+import com.petopscommerce.domain.inventory.service.operation.StockOperationCommand;
+import com.petopscommerce.domain.inventory.service.operation.StockOperationResult;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * - 재고 수량 변경 공통 서비스
- * - 현재고 잠금, 수량 증감, stock_movements 원장 저장 담당
+ * - 외부에는 execute(command) 하나만 열고, 현재고 잠금/증감/원장 저장을 내부에서 처리
  */
 @Service
 @Transactional
@@ -36,246 +37,173 @@ public class StockOperationService {
     }
 
     /**
-     * - 재고 수량 변경을 위한 잠금 조회
-     * - 같은 stock row에 대한 동시 작업을 순서대로 처리하기 위해 사용
+     * - 재고 수량 작업 실행 단일 진입점
+     * - command의 from/to/bucket 조합으로 입고, 할당, 이동, PICK, 출고, 조정, LOT 변경을 처리
      *
-     * @param stockId 현재고 ID
-     * @return 잠금 조회된 현재고
+     * @param command 재고 수량 변경 command
+     * @return 변경 결과
      */
-    public Stock getStockForUpdate(Long stockId) {
-        return stockRepository.findWithLockById(stockId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "stock not found"));
+    public StockOperationResult execute(StockOperationCommand command) {
+        validateRequired(command, "stock operation command is required");
+        validateRequired(command.job(), "stock job is required");
+        validateRequired(command.operationType(), "stock operation type is required");
+
+        switch (command.operationType()) {
+            case RECEIVE:
+                return executeReceive(command);
+            case ALLOCATE:
+                return executeAllocate(command);
+            case TRANSFER:
+                return executeTransfer(command);
+            case PICK:
+                return executePick(command);
+            case SHIP:
+                return executeShip(command);
+            case ADJUST:
+                return executeAdjust(command);
+            case LOT_CHANGE:
+                return executeLotChange(command);
+            default:
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "unsupported stock operation type");
+        }
     }
 
     /**
      * - 입고/초기 재고 증가
-     * - 같은 product/warehouse/location/lot 현재고가 있으면 증가하고, 없으면 신규 생성
-     *
-     * @param job 재고 작업 헤더
-     * @param productId 상품 ID
-     * @param warehouseId 창고 ID
-     * @param locationId location ID
-     * @param lotId LOT ID
-     * @param quantity 입고 수량
-     * @param reason 입고 사유
-     * @return 변경된 현재고
+     * - from 없이 target 현재고를 생성하거나 증가
      */
-    public Stock receive(StockJob job, Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, String reason) {
-        // 단계 1: 가용수량 증가 delta를 현재고에 반영
-        // 결과: 동일 현재고가 있으면 증가하고, 없으면 입고 수량만큼 신규 row 생성
-        Stock stock = applyStockDelta(productId, warehouseId, locationId, lotId, quantity, StockQuantityBucket.AVAILABLE);
+    private StockOperationResult executeReceive(StockOperationCommand command) {
+        validateRequired(command.productId(), "product id is required");
+        validateRequired(command.warehouseId(), "warehouse id is required");
+        validateRequired(command.toLocationId(), "target location is required");
+        validateRequired(command.toLotId(), "target lot is required");
+        validatePositiveQuantity(command.quantity());
 
-        // 단계 2: 입고 원장 저장
-        // 결과: 처리 수량과 처리 후 total_quantity snapshot 기록
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                stock,
-                StockMovementType.RECEIVE_IN,
-                null,
-                locationId,
-                quantity,
-                reason
-        ));
+        Stock targetStock = applyStockDelta(
+                command.productId(),
+                command.warehouseId(),
+                command.toLocationId(),
+                command.toLotId(),
+                command.quantity(),
+                command.toBucket()
+        );
+        createMovement(command, targetStock, StockMovementType.RECEIVE_IN, null, command.toLocationId(), command.quantity());
 
-        return stock;
+        return new StockOperationResult(null, targetStock);
     }
 
     /**
      * - 재고 할당
-     * - 실제 location 이동 없이 가용수량을 작업수량으로 전환
-     *
-     * @param job 재고 작업 헤더
-     * @param stock 잠금 조회된 현재고
-     * @param quantity 할당 수량
-     * @param reason 할당 사유
-     * @return 변경된 현재고
+     * - 같은 stock 내부에서 total은 유지하고 available을 working으로 전환
      */
-    public Stock reserve(StockJob job, Stock stock, Integer quantity, String reason) {
-        applyStockChange(() -> stock.allocate(quantity));
+    private StockOperationResult executeAllocate(StockOperationCommand command) {
+        validateRequired(command.fromStockId(), "source stock is required");
+        validatePositiveQuantity(command.quantity());
 
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                stock,
-                StockMovementType.ALLOCATE,
-                stock.getLocationId(),
-                null,
-                quantity,
-                reason
-        ));
+        Stock sourceStock = getStockForUpdate(command.fromStockId());
+        applyStockChange(() -> sourceStock.allocate(command.quantity()));
+        createMovement(command, sourceStock, StockMovementType.ALLOCATE, sourceStock.getLocationId(), null, command.quantity());
 
-        return stock;
+        return new StockOperationResult(sourceStock, null);
     }
 
     /**
      * - location 간 가용 재고 이동
-     * - 작업수량은 건드리지 않고 source/target의 total/available만 변경
-     *
-     * @param job 재고 작업 헤더
-     * @param sourceStock 잠금 조회된 출발 현재고
-     * @param toLocationId 도착 location ID
-     * @param quantity 이동 수량
-     * @param reason 이동 사유
-     * @return 도착 location 현재고
      */
-    public Stock moveAvailableToLocation(StockJob job, Stock sourceStock, Long toLocationId, Integer quantity, String reason) {
-        // 단계 1: 출발 location의 가용수량 차감
-        // 결과: 가용수량이 부족하면 BAD_REQUEST로 중단
-        applyStockChange(() -> sourceStock.applyAvailableDelta(-quantity));
-
-        // 단계 2: 도착 location의 가용수량 증가
-        // 결과: 도착 현재고가 없으면 0 row가 아니라 이동 수량만큼 신규 row 생성
-        Stock targetStock = applyStockDelta(
-                sourceStock.getProductId(),
-                sourceStock.getWarehouseId(),
-                toLocationId,
-                sourceStock.getLotId(),
-                quantity,
-                StockQuantityBucket.AVAILABLE
-        );
-
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                sourceStock,
-                StockMovementType.TRANSFER_OUT,
-                sourceStock.getLocationId(),
-                toLocationId,
-                -quantity,
-                reason
-        ));
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                targetStock,
-                StockMovementType.TRANSFER_IN,
-                sourceStock.getLocationId(),
-                toLocationId,
-                quantity,
-                reason
-        ));
-
-        return targetStock;
+    private StockOperationResult executeTransfer(StockOperationCommand command) {
+        validateRequired(command.toLocationId(), "target location is required");
+        return executeMove(command, StockMovementType.TRANSFER_OUT, StockMovementType.TRANSFER_IN, "available stock is not enough");
     }
 
     /**
-     * - PICKTO 작업 이동
-     * - source 작업수량을 PICKTO 작업수량으로 이동
-     *
-     * @param job 재고 작업 헤더
-     * @param sourceStock 잠금 조회된 원천 현재고
-     * @param toLocationId PICKTO location ID
-     * @param quantity 이동 수량
-     * @param reason PICK 사유
-     * @return PICKTO 현재고
+     * - PICKTO 작업수량 이동
      */
-    public Stock moveWorkingToLocation(StockJob job, Stock sourceStock, Long toLocationId, Integer quantity, String reason) {
-        // 단계 1: 출발 location의 작업수량 차감
-        // 결과: 할당된 작업수량이 부족하면 BAD_REQUEST로 중단
-        applyStockChange(() -> sourceStock.applyWorkingDelta(-quantity, "picked stock is not enough"));
+    private StockOperationResult executePick(StockOperationCommand command) {
+        validateRequired(command.toLocationId(), "target location is required");
+        return executeMove(command, StockMovementType.PICK_OUT, StockMovementType.PICK_IN, "picked stock is not enough");
+    }
 
-        // 단계 2: PICKTO location의 작업수량 증가
-        // 결과: PICKTO 현재고가 없으면 0 row가 아니라 PICK 수량만큼 신규 row 생성
+    /**
+     * - LOT 속성 변경
+     * - 같은 location에서 lot_id가 다른 현재고로 available 수량을 이동
+     */
+    private StockOperationResult executeLotChange(StockOperationCommand command) {
+        validateRequired(command.toLotId(), "target lot is required");
+        return executeMove(command, StockMovementType.LOT_CHANGE_OUT, StockMovementType.LOT_CHANGE_IN, "available stock is not enough");
+    }
+
+    /**
+     * - from 현재고 차감 후 to 현재고 생성/증가
+     */
+    private StockOperationResult executeMove(StockOperationCommand command, StockMovementType outType, StockMovementType inType, String shortageMessage) {
+        validateRequired(command.fromStockId(), "source stock is required");
+        validatePositiveQuantity(command.quantity());
+
+        Stock sourceStock = getStockForUpdate(command.fromStockId());
+        Long targetLocationId = command.toLocationId() != null ? command.toLocationId() : sourceStock.getLocationId();
+        Long targetLotId = command.toLotId() != null ? command.toLotId() : sourceStock.getLotId();
+
+        // 단계 1: 출발 현재고 차감
+        // 결과: 부족하면 Entity 검증 예외를 API 400으로 변환
+        applyDeltaToStock(sourceStock, -command.quantity(), command.fromBucket(), shortageMessage);
+
+        // 단계 2: 도착 현재고 생성 또는 증가
+        // 결과: 동일 target 현재고가 있으면 병합되고, 없으면 신규 row 생성
         Stock targetStock = applyStockDelta(
                 sourceStock.getProductId(),
                 sourceStock.getWarehouseId(),
-                toLocationId,
-                sourceStock.getLotId(),
-                quantity,
-                StockQuantityBucket.WORKING
+                targetLocationId,
+                targetLotId,
+                command.quantity(),
+                command.toBucket()
         );
 
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                sourceStock,
-                StockMovementType.PICK_OUT,
-                sourceStock.getLocationId(),
-                toLocationId,
-                -quantity,
-                reason
-        ));
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                targetStock,
-                StockMovementType.PICK_IN,
-                sourceStock.getLocationId(),
-                toLocationId,
-                quantity,
-                reason
-        ));
+        createMovement(command, sourceStock, outType, sourceStock.getLocationId(), targetLocationId, -command.quantity());
+        createMovement(command, targetStock, inType, sourceStock.getLocationId(), targetLocationId, command.quantity());
 
-        return targetStock;
+        return new StockOperationResult(sourceStock, targetStock);
     }
 
     /**
      * - PICKTO 출고 차감
-     * - 작업수량으로 잡힌 재고를 실제 창고 밖으로 차감
-     *
-     * @param job 재고 작업 헤더
-     * @param stock 출고 대상 현재고
-     * @param quantity 출고 수량
-     * @param reason 출고 사유
-     * @return 변경된 현재고
      */
-    public Stock issueWorking(StockJob job, Stock stock, Integer quantity, String reason) {
-        applyStockChange(() -> stock.applyWorkingDelta(-quantity, "shipping stock is not enough"));
+    private StockOperationResult executeShip(StockOperationCommand command) {
+        validateRequired(command.fromStockId(), "source stock is required");
+        validatePositiveQuantity(command.quantity());
 
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                stock,
-                StockMovementType.SHIP_OUT,
-                stock.getLocationId(),
-                null,
-                -quantity,
-                reason
-        ));
+        Stock sourceStock = getStockForUpdate(command.fromStockId());
+        applyDeltaToStock(sourceStock, -command.quantity(), command.fromBucket(), "shipping stock is not enough");
+        createMovement(command, sourceStock, StockMovementType.SHIP_OUT, sourceStock.getLocationId(), null, -command.quantity());
 
-        return stock;
+        return new StockOperationResult(sourceStock, null);
     }
 
     /**
      * - 수동 재고 조정
-     * - 양수는 증가, 음수는 가용수량 기준 차감
-     *
-     * @param job 재고 작업 헤더
-     * @param stock 조정 대상 현재고
-     * @param signedQuantity 부호가 있는 조정 수량
-     * @param reason 조정 사유
-     * @return 변경된 현재고
+     * - quantity 부호로 증가/차감을 구분
      */
-    public Stock adjust(StockJob job, Stock stock, Integer signedQuantity, String reason) {
-        applyStockChange(() -> stock.applyAvailableDelta(signedQuantity));
+    private StockOperationResult executeAdjust(StockOperationCommand command) {
+        validateRequired(command.fromStockId(), "source stock is required");
+        validateNonZeroDelta(command.quantity());
 
-        stockMovementRepository.save(StockMovement.create(
-                job,
-                stock,
-                StockMovementType.ADJUST,
-                stock.getLocationId(),
-                null,
-                signedQuantity,
-                reason
-        ));
+        Stock sourceStock = getStockForUpdate(command.fromStockId());
+        applyDeltaToStock(sourceStock, command.quantity(), command.fromBucket(), "available stock is not enough");
+        createMovement(command, sourceStock, StockMovementType.ADJUST, sourceStock.getLocationId(), null, command.quantity());
 
-        return stock;
+        return new StockOperationResult(sourceStock, null);
     }
 
     /**
      * - 현재고 row에 수량 delta 반영
      * - row가 없으면 양수 delta일 때만 신규 생성하고, 음수 delta는 재고 부족으로 처리
-     *
-     * @param productId 상품 ID
-     * @param warehouseId 창고 ID
-     * @param locationId location ID
-     * @param lotId LOT ID
-     * @param quantityDelta 부호가 있는 변경 수량
-     * @param bucket 변경 대상 수량 유형
-     * @return 변경된 현재고
      */
     private Stock applyStockDelta(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket) {
         validateNonZeroDelta(quantityDelta);
+        validateRequired(bucket, "target quantity bucket is required");
 
-        // 단계 1: 동일 현재고 row를 잠금 조회
-        // 결과: row가 있으면 해당 row에 delta만 반영
         return stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(productId, warehouseId, locationId, lotId)
                 .map(stock -> {
-                    applyDeltaToStock(stock, quantityDelta, bucket);
+                    applyDeltaToStock(stock, quantityDelta, bucket, "stock is not enough");
                     return stock;
                 })
                 .orElseGet(() -> createStockByPositiveDelta(productId, warehouseId, locationId, lotId, quantityDelta, bucket));
@@ -284,14 +212,6 @@ public class StockOperationService {
     /**
      * - 신규 현재고 생성
      * - 재고 row가 없을 때 양수 delta만 신규 row로 만들 수 있음
-     *
-     * @param productId 상품 ID
-     * @param warehouseId 창고 ID
-     * @param locationId location ID
-     * @param lotId LOT ID
-     * @param quantityDelta 양수 변경 수량
-     * @param bucket 생성할 수량 유형
-     * @return 신규 현재고
      */
     private Stock createStockByPositiveDelta(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket) {
         if (quantityDelta < 0) {
@@ -308,34 +228,16 @@ public class StockOperationService {
     /**
      * - 동시 신규 생성 충돌 재시도
      * - 같은 현재고를 다른 요청이 먼저 만들었으면 다시 잠금 조회 후 delta 반영
-     *
-     * @param productId 상품 ID
-     * @param warehouseId 창고 ID
-     * @param locationId location ID
-     * @param lotId LOT ID
-     * @param quantityDelta 부호가 있는 변경 수량
-     * @param bucket 변경 대상 수량 유형
-     * @param exception 원래 DB unique 충돌 예외
-     * @return 변경된 현재고
      */
     private Stock retryApplyDeltaAfterDuplicate(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantityDelta, StockQuantityBucket bucket, DataIntegrityViolationException exception) {
         Stock stock = stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(productId, warehouseId, locationId, lotId)
                 .orElseThrow(() -> exception);
-        applyDeltaToStock(stock, quantityDelta, bucket);
+        applyDeltaToStock(stock, quantityDelta, bucket, "stock is not enough");
         return stock;
     }
 
     /**
      * - 수량 유형별 신규 현재고 생성
-     * - AVAILABLE은 가용수량으로, WORKING은 작업수량으로 시작
-     *
-     * @param productId 상품 ID
-     * @param warehouseId 창고 ID
-     * @param locationId location ID
-     * @param lotId LOT ID
-     * @param quantity 생성 수량
-     * @param bucket 생성할 수량 유형
-     * @return 신규 현재고
      */
     private Stock createStock(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket) {
         if (bucket == StockQuantityBucket.WORKING) {
@@ -348,15 +250,12 @@ public class StockOperationService {
     /**
      * - 기존 현재고에 delta 반영
      * - Entity 검증 예외는 API 응답용 BAD_REQUEST로 변환
-     *
-     * @param stock 변경 대상 현재고
-     * @param quantityDelta 부호가 있는 변경 수량
-     * @param bucket 변경 대상 수량 유형
      */
-    private void applyDeltaToStock(Stock stock, Integer quantityDelta, StockQuantityBucket bucket) {
+    private void applyDeltaToStock(Stock stock, Integer quantityDelta, StockQuantityBucket bucket, String shortageMessage) {
+        validateRequired(bucket, "quantity bucket is required");
         applyStockChange(() -> {
             if (bucket == StockQuantityBucket.WORKING) {
-                stock.applyWorkingDelta(quantityDelta, "working stock is not enough");
+                stock.applyWorkingDelta(quantityDelta, shortageMessage);
                 return;
             }
 
@@ -364,9 +263,44 @@ public class StockOperationService {
         });
     }
 
+    /**
+     * - 재고 이동 원장 생성
+     */
+    private void createMovement(StockOperationCommand command, Stock stock, StockMovementType movementType, Long fromLocationId, Long toLocationId, Integer quantity) {
+        stockMovementRepository.save(StockMovement.create(
+                command.job(),
+                stock,
+                movementType,
+                fromLocationId,
+                toLocationId,
+                quantity,
+                command.reason()
+        ));
+    }
+
+    /**
+     * - 재고 수량 변경을 위한 잠금 조회
+     */
+    private Stock getStockForUpdate(Long stockId) {
+        return stockRepository.findWithLockById(stockId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "stock not found"));
+    }
+
+    private void validatePositiveQuantity(Integer quantity) {
+        if (quantity == null || quantity <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "quantity must be positive");
+        }
+    }
+
     private void validateNonZeroDelta(Integer quantityDelta) {
         if (quantityDelta == null || quantityDelta == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "quantity must not be zero");
+        }
+    }
+
+    private void validateRequired(Object value, String message) {
+        if (value == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
         }
     }
 

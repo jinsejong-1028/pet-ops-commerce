@@ -383,15 +383,17 @@ http/inventory-api.http
 
 ## 현재 재고 API 요약
 
-현재 재고 도메인은 조회, 입고성 현재고 생성, 수동 조정, location 이동, 할당, PICK, 출고 API를 제공합니다.
+현재 재고 도메인은 조회, 입고성 현재고 생성, 수동 조정, location 이동, LOT 속성 변경, 할당, PICK, 출고 API를 제공합니다.
 
 ```text
 GET  /api/v1/admin/stocks
+GET  /api/v1/admin/stocks?includeZero=true
 GET  /api/v1/admin/stocks/{stockId}
 POST /api/v1/admin/warehouses
 POST /api/v1/admin/locations
 POST /api/v1/admin/stocks
 POST /api/v1/admin/stocks/transfer
+POST /api/v1/admin/stocks/change-lot
 POST /api/v1/admin/stocks/adjust
 POST /api/v1/admin/stocks/allocate
 POST /api/v1/admin/stocks/pick
@@ -399,6 +401,19 @@ POST /api/v1/admin/stocks/outbound
 ```
 
 후속 작업에서는 이 API를 출고 지시(`shipment_orders`)와 입고 지시(`receiving_orders`) workflow에 연결합니다.
+
+## Stock Controller / Service 책임 정리
+
+`/api/v1/admin/stocks` 계열 API는 `StockController` 하나를 단일 HTTP 진입점으로 사용합니다.
+Controller는 `StockService` facade만 호출하고, 업무 검증과 job 생성, workflow 상태 변경은 `StockService`에서 조율합니다.
+
+```text
+StockController
+-> StockService: 기준정보 검증, LOT 생성/조회, stock_jobs 생성, workflow 상태 변경
+-> StockOperationService.execute(command): 현재고 잠금, 수량 증감, stock_movements 저장
+```
+
+이 구조는 같은 base URL을 여러 Controller가 나누어 갖는 혼선을 줄이고, 외부 업무가 재고 수량 엔진을 여러 public 메서드로 직접 호출하지 않도록 책임 경계를 단순화합니다.
 
 ## 관리자 재고 명령 API
 
@@ -410,6 +425,7 @@ POST /api/v1/admin/warehouses
 POST /api/v1/admin/locations
 POST /api/v1/admin/stocks
 POST /api/v1/admin/stocks/transfer
+POST /api/v1/admin/stocks/change-lot
 POST /api/v1/admin/stocks/adjust
 ```
 
@@ -445,6 +461,7 @@ LOT00000002
 `POST /api/v1/admin/stocks/adjust`는 `ADJUST` movement type을 하나만 사용하고, `quantity`의 부호로 증감 방향을 판단합니다.
 
 `POST /api/v1/admin/stocks/transfer`는 가용수량 기준 location 이동이며, `TRANSFER_OUT`/`TRANSFER_IN` movement를 남깁니다.
+`POST /api/v1/admin/stocks/change-lot`는 같은 location에서 기존 LOT 재고를 새 LOT 재고로 이동하며, `LOT_CHANGE_OUT`/`LOT_CHANGE_IN` movement를 남깁니다. 대상 LOT 현재고가 이미 있으면 해당 row로 병합하고, 없으면 신규 현재고를 생성합니다.
 
 ```text
 quantity > 0: total_quantity 증가, available_quantity 증가
@@ -456,20 +473,23 @@ quantity = 0: 오류
 
 ## StockOperationService 공통화
 
-재고 수량 변경 책임을 `StockOperationService`로 모았습니다.
-`StockWorkflowService`는 할당, PICK, 출고의 업무 순서와 job 상태만 관리하고, 실제 현재고 수량 변경과 원장 저장은 공통 서비스에 위임합니다.
+재고 수량 변경 책임은 `StockOperationService.execute(command)` 단일 public 메서드로 모았습니다.
+입고, 할당, 일반 이동, PICK, 출고, 조정, LOT 변경은 모두 `StockOperationCommand`의 from/to 위치와 `AVAILABLE`/`WORKING` bucket 조합으로 표현합니다.
 
 ```text
-receive: 입고, total/available 증가
-reserve: 할당, available 감소 + working 증가
-moveWorkingToLocation: PICK, source working 차감 + PICKTO working 증가
-issueWorking: 출고, PICKTO working 차감
-adjust: 수동 조정, signed quantity 기준 total/available 증감
+RECEIVE: from 없음, target AVAILABLE 증가
+ALLOCATE: 같은 stock 내부 AVAILABLE 감소 + WORKING 증가
+TRANSFER: source AVAILABLE 감소 + target AVAILABLE 증가
+PICK: source WORKING 감소 + PICKTO target WORKING 증가
+SHIP: source WORKING 감소, target 없음
+ADJUST: signed quantity 기준 source AVAILABLE 증감
+LOT_CHANGE: 같은 location에서 source LOT AVAILABLE 감소 + target LOT AVAILABLE 증가
 ```
 
-재고 이동은 from/to location의 수량 delta로 처리합니다.
+재고 이동은 from/to location과 lot의 수량 delta로 처리합니다.
 도착 현재고가 없을 때도 `quantity = 0` row를 먼저 만들지 않고, 실제 이동 수량만큼 바로 생성합니다.
 음수 delta인데 현재고가 없거나 수량이 부족하면 재고 부족 오류로 처리합니다.
+현재고가 0이 되어도 row를 즉시 삭제하지 않고 보존하며, 목록 조회에서는 기본 제외하고 `includeZero=true` 요청에서만 포함합니다.
 
 ## 수량 컬럼 기준 변경
 

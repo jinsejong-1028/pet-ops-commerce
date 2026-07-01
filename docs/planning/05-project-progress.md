@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-07-01 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `chore/openapi-docs` |
-| Git 상태 | OpenAPI 문서화 작업 진행 중 |
+| 현재 브랜치 | `refactor/stock-controller-consolidation` |
+| Git 상태 | Stock Service facade와 Operation 단일 command 흐름 정리 진행 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `feature/sales-order-warehouse-confirm-flow` PR merge |
-| 다음 추천 작업 | OpenAPI 문서화 검증 및 PR |
+| 마지막 완료 작업 | `chore/openapi-docs` PR merge |
+| 다음 추천 작업 | Stock Service/Operation 리팩토링 검증 및 PR |
 
 ## 완료 작업
 

@@ -19,6 +19,10 @@ public enum StockMovementType {
     TRANSFER_OUT,
     /** - location 이동 도착 */
     TRANSFER_IN,
+    /** - LOT 속성 변경 출발 */
+    LOT_CHANGE_OUT,
+    /** - LOT 속성 변경 도착 */
+    LOT_CHANGE_IN,
     /** - 입고 증가 */
     RECEIVE_IN,
     /** - 입고 취소 차감 */
