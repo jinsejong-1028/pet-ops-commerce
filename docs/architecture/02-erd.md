@@ -24,6 +24,7 @@ erDiagram
   PRODUCT ||--o{ ORDER_ITEM : ordered
   WAREHOUSE ||--o{ LOCATION : contains
   WAREHOUSE ||--o{ STOCK : holds
+  WAREHOUSE ||--o{ SALES_ORDER : fulfills_from
   LOCATION ||--o{ STOCK : stores
   LOT ||--o{ STOCK : grouped_by
   ORDER ||--o| ORDER_DELIVERY : ships_to
@@ -79,9 +80,9 @@ total_quantity >= 0
 ### 고객 주문
 
 ```text
-customer_orders: id, member_id, order_no, order_type, status, total_amount, discount_amount, payment_amount, ordered_at, audit columns
+customer_orders: id, member_id, order_no, order_type, status, total_amount, discount_amount, payment_amount, ordered_at, confirmed_at, audit columns
 customer_order_deliveries: id, customer_order_id, recipient_name, recipient_phone, zip_code, address1, address2, delivery_message, entrance_password, status, audit columns
-customer_order_items: id, customer_order_id, product_id, quantity, unit_price, line_amount, audit columns
+customer_order_items: id, customer_order_id, status, product_id, quantity, unit_price, line_amount, audit columns
 payments: id, customer_order_id, payment_key, status, amount, approved_at, audit columns
 customer_order_events: id, customer_order_id, event_type, description, audit columns
 ```
@@ -89,7 +90,7 @@ customer_order_events: id, customer_order_id, event_type, description, audit col
 ### 판매/출고/구매/입고
 
 ```text
-sales_orders: id, sales_order_no, customer_order_id, order_date, status, confirmed_at, canceled_at, reason, audit columns
+sales_orders: id, sales_order_no, customer_order_id, warehouse_id, order_date, status, confirmed_at, canceled_at, reason, audit columns
 sales_order_items: id, sales_order_id, customer_order_item_id, product_id, order_quantity, unit_price, line_amount, status, audit columns
 shipment_orders: id, shipment_order_no, sales_order_id, warehouse_id, status, scheduled_ship_date, shipped_at, canceled_at, reason, audit columns
 shipment_order_items: id, shipment_order_id, sales_order_item_id, product_id, order_quantity, allocated_quantity, picked_quantity, shipped_quantity, status, audit columns
@@ -174,6 +175,7 @@ PICK: PICK_OUT/PICK_IN, NORMAL -> PICKTO 이동
 | stock_jobs | reference_type, reference_id | 출고/입고 지시별 재고 작업 추적 |
 | stock_movements | job_id, stock_id, created_at | 작업별/현재고별 원장 조회 |
 | sales_orders | customer_order_id | 고객 주문 기준 판매 주문 조회 |
+| sales_orders | warehouse_id | 창고별 판매 주문 조회 |
 | shipment_orders | sales_order_id, warehouse_id, status | 출고 지시 조회 |
 | purchase_orders | status, ordered_at | 구매 발주 조회 |
 | receiving_orders | purchase_order_id, warehouse_id, status | 입고 지시 조회 |

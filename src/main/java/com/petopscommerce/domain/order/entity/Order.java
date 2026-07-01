@@ -78,11 +78,18 @@ public class Order extends BaseAuditEntity {
     @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
 
+    /**
+     * - 고객 주문 확정 일시
+     * - 판매 주문 확정 시 같은 시각으로 저장
+     */
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     protected Order() {
         // JPA 기본 생성자
     }
 
-    private Order(Long memberId, String orderNo, OrderType orderType, OrderStatus status, Integer totalAmount, Integer discountAmount, Integer paymentAmount, LocalDateTime orderedAt) {
+    private Order(Long memberId, String orderNo, OrderType orderType, OrderStatus status, Integer totalAmount, Integer discountAmount, Integer paymentAmount, LocalDateTime orderedAt, LocalDateTime confirmedAt) {
         this.memberId = memberId;
         this.orderNo = orderNo;
         this.orderType = orderType;
@@ -91,6 +98,7 @@ public class Order extends BaseAuditEntity {
         this.discountAmount = discountAmount;
         this.paymentAmount = paymentAmount;
         this.orderedAt = orderedAt;
+        this.confirmedAt = confirmedAt;
     }
 
     /**
@@ -104,15 +112,18 @@ public class Order extends BaseAuditEntity {
      * @return 신규 주문 Entity
      */
     public static Order create(Long memberId, String orderNo, Integer totalAmount, LocalDateTime orderedAt) {
-        return new Order(memberId, orderNo, OrderType.CUSTOMER_ORDER, OrderStatus.CREATED, totalAmount, 0, totalAmount, orderedAt);
+        return new Order(memberId, orderNo, OrderType.CUSTOMER_ORDER, OrderStatus.CREATED, totalAmount, 0, totalAmount, orderedAt, null);
     }
 
     /**
      * - 고객 주문 확정
-     * - 판매 주문 확정 시 고객 주문 상태도 함께 확정
+     * - 판매 주문 확정 시 고객 주문 상태와 확정 시각을 함께 저장
+     *
+     * @param confirmedAt 확정 일시
      */
-    public void confirm() {
+    public void confirm(LocalDateTime confirmedAt) {
         this.status = OrderStatus.CONFIRMED;
+        this.confirmedAt = confirmedAt;
     }
 
     /**
@@ -157,5 +168,9 @@ public class Order extends BaseAuditEntity {
 
     public LocalDateTime getOrderedAt() {
         return orderedAt;
+    }
+
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
     }
 }

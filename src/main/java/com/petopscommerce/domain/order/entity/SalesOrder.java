@@ -39,6 +39,13 @@ public class SalesOrder extends BaseAuditEntity {
     private Long customerOrderId;
 
     /**
+     * - 출고 창고 ID
+     * - 판매 주문 확정 전 운영자가 지정하고 출고 주문 생성에 사용
+     */
+    @Column(name = "warehouse_id")
+    private Long warehouseId;
+
+    /**
      * - 판매 주문 업무일자
      * - row 생성시각이 아니라 주문 업무 기준일
      */
@@ -68,9 +75,10 @@ public class SalesOrder extends BaseAuditEntity {
         // JPA 기본 생성자
     }
 
-    private SalesOrder(String salesOrderNo, Long customerOrderId, LocalDate orderDate, SalesOrderStatus status, String reason) {
+    private SalesOrder(String salesOrderNo, Long customerOrderId, Long warehouseId, LocalDate orderDate, SalesOrderStatus status, String reason) {
         this.salesOrderNo = salesOrderNo;
         this.customerOrderId = customerOrderId;
+        this.warehouseId = warehouseId;
         this.orderDate = orderDate;
         this.status = status;
         this.reason = reason;
@@ -83,11 +91,20 @@ public class SalesOrder extends BaseAuditEntity {
      * @param salesOrderNo 판매 주문 번호
      * @param customerOrderId 원천 고객 주문 ID
      * @param orderDate 판매 주문 업무일자
-     * @param reason 생성 사유
      * @return 판매 주문 Entity
      */
-    public static SalesOrder create(String salesOrderNo, Long customerOrderId, LocalDate orderDate, String reason) {
-        return new SalesOrder(salesOrderNo, customerOrderId, orderDate, SalesOrderStatus.CREATED, reason);
+    public static SalesOrder create(String salesOrderNo, Long customerOrderId, LocalDate orderDate) {
+        return new SalesOrder(salesOrderNo, customerOrderId, null, orderDate, SalesOrderStatus.CREATED, null);
+    }
+
+    /**
+     * - 출고 창고 지정
+     * - 판매 주문 확정 전 출고 주문 생성에 사용할 창고를 저장
+     *
+     * @param warehouseId 출고 창고 ID
+     */
+    public void assignWarehouse(Long warehouseId) {
+        this.warehouseId = warehouseId;
     }
 
     /**
@@ -95,12 +112,10 @@ public class SalesOrder extends BaseAuditEntity {
      * - 출고 주문 생성 직전에 CONFIRMED 상태로 변경
      *
      * @param confirmedAt 확정 일시
-     * @param reason 확정 사유
      */
-    public void confirm(LocalDateTime confirmedAt, String reason) {
+    public void confirm(LocalDateTime confirmedAt) {
         this.status = SalesOrderStatus.CONFIRMED;
         this.confirmedAt = confirmedAt;
-        this.reason = reason;
     }
 
     /**
@@ -108,12 +123,10 @@ public class SalesOrder extends BaseAuditEntity {
      * - 출고 주문 생성 전 취소 상태로 변경
      *
      * @param canceledAt 취소 일시
-     * @param reason 취소 사유
      */
-    public void cancel(LocalDateTime canceledAt, String reason) {
+    public void cancel(LocalDateTime canceledAt) {
         this.status = SalesOrderStatus.CANCELED;
         this.canceledAt = canceledAt;
-        this.reason = reason;
     }
 
     public Long getId() {
@@ -126,6 +139,10 @@ public class SalesOrder extends BaseAuditEntity {
 
     public Long getCustomerOrderId() {
         return customerOrderId;
+    }
+
+    public Long getWarehouseId() {
+        return warehouseId;
     }
 
     public LocalDate getOrderDate() {
