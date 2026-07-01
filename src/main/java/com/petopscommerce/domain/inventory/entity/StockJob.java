@@ -137,6 +137,20 @@ public class StockJob extends BaseAuditEntity {
     }
 
     /**
+     * - LOT 속성 변경 작업 생성
+     * - 같은 location 안에서 lot_id만 다른 현재고로 수량을 이동하고 즉시 완료됨
+     *
+     * @param jobNo 재고 작업 번호
+     * @param warehouseId 창고 ID
+     * @param reason 작업 사유
+     * @param completedAt 완료 일시
+     * @return 신규 재고 작업
+     */
+    public static StockJob createLotChange(String jobNo, Long warehouseId, String reason, LocalDateTime completedAt) {
+        return new StockJob(jobNo, StockJobType.LOT_CHANGE, warehouseId, null, null, StockJobStatus.LOT_CHANGED, reason, completedAt);
+    }
+
+    /**
      * - PICKTO 이동 완료 상태로 변경
      */
     public void markPicked() {

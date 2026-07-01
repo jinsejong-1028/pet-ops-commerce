@@ -37,7 +37,6 @@ Authorization: Bearer {{accessToken}}
 }
 
 
-
 ### Create STAGE location
 # 실제 입고 흐름에서는 입고 대기장 location을 먼저 사용할 수 있습니다.
 # 이번 테스트 흐름에서는 바로 NORMAL location에 입고하므로 필요할 때만 실행합니다.
@@ -51,6 +50,7 @@ Authorization: Bearer {{accessToken}}
   "name": "Inbound Staging 01",
   "locationType": "STAGE"
 }
+
 
 ### Create PICKTO location
 # 피킹 후 출고 전 대기할 PICKTO location을 생성합니다.
@@ -87,6 +87,25 @@ Authorization: Bearer {{accessToken}}
 }
 
 
+### Change stock LOT
+# 같은 location 안에서 기존 LOT 재고를 변경 후 LOT 재고로 이동합니다.
+# 대상 LOT 현재고가 이미 있으면 해당 row로 병합됩니다.
+POST http://localhost:8080/api/v1/admin/stocks/change-lot
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "stockId": 3,
+  "lot1": "BATCH-20260626-B",
+  "lot2": "SUPPLIER-A",
+  "lot3": "2027-06-26",
+  "lot4": null,
+  "lot5": "NORMAL",
+  "quantity": 5,
+  "reason": "correct lot attributes"
+}
+
+
 ### Adjust stock
 # ADJUST는 quantity 부호로 증감합니다. 음수 차감은 availableQuantity 기준으로 검증합니다.
 POST http://localhost:8080/api/v1/admin/stocks/adjust
@@ -101,7 +120,7 @@ Authorization: Bearer {{accessToken}}
 
 
 ### Get stocks
-# location 단위 현재고 목록을 조회합니다.
+# location 단위 현재고 목록을 조회합니다. 기본값은 0수량 row 제외입니다.
 GET http://localhost:8080/api/v1/admin/stocks
 Authorization: Bearer {{accessToken}}
 
@@ -112,10 +131,18 @@ GET http://localhost:8080/api/v1/admin/stocks?productId=1&warehouseId=1&location
 Authorization: Bearer {{accessToken}}
 
 
+### Get stocks including zero rows
+# 0수량 row까지 확인해야 할 때 includeZero=true를 사용합니다.
+GET http://localhost:8080/api/v1/admin/stocks?includeZero=true
+Authorization: Bearer {{accessToken}}
+
+
 ### Get stock
 # 현재고 단건을 조회합니다.
 GET http://localhost:8080/api/v1/admin/stocks/1
 Authorization: Bearer {{accessToken}}
+
+
 ### Allocate stock
 # 주문 출고를 위해 현재고를 할당합니다.
 POST http://localhost:8080/api/v1/admin/stocks/allocate

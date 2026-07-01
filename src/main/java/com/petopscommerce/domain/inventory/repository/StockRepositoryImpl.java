@@ -42,7 +42,8 @@ public class StockRepositoryImpl implements StockRepositoryCustom {
                 .where(
                         productIdEq(condition.productId()),
                         warehouseIdEq(condition.warehouseId()),
-                        locationIdEq(condition.locationId())
+                        locationIdEq(condition.locationId()),
+                        positiveQuantityOnly(condition.includeZero())
                 )
                 .fetch();
     }
@@ -75,5 +76,22 @@ public class StockRepositoryImpl implements StockRepositoryCustom {
      */
     private BooleanExpression locationIdEq(Long locationId) {
         return locationId == null ? null : stock.locationId.eq(locationId);
+    }
+
+    /**
+     * - 0수량 현재고 기본 제외 조건
+     * - 원장 추적을 위해 row는 유지하되 운영 목록에서는 기본 숨김 처리
+     *
+     * @param includeZero 0수량 포함 여부
+     * @return 수량이 남아 있는 현재고 조건식
+     */
+    private BooleanExpression positiveQuantityOnly(Boolean includeZero) {
+        if (Boolean.TRUE.equals(includeZero)) {
+            return null;
+        }
+
+        return stock.totalQuantity.gt(0)
+                .or(stock.availableQuantity.gt(0))
+                .or(stock.workingQuantity.gt(0));
     }
 }

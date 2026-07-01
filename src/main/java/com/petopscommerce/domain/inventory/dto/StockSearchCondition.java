@@ -7,10 +7,12 @@ package com.petopscommerce.domain.inventory.dto;
  * @param productId 상품 ID
  * @param warehouseId 창고 ID
  * @param locationId location ID
+ * @param includeZero 0수량 현재고 포함 여부
  */
 public record StockSearchCondition(
         Long productId,
         Long warehouseId,
-        Long locationId
+        Long locationId,
+        Boolean includeZero
 ) {
 }

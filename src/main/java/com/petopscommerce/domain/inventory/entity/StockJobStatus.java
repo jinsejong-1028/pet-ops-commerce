@@ -19,6 +19,8 @@ public enum StockJobStatus {
     ADJUSTED,
     /** - location 재고 이동 완료 */
     TRANSFERRED,
+    /** - LOT 속성 변경 완료 */
+    LOT_CHANGED,
     /** - 작업 취소 */
     CANCELED
 }
