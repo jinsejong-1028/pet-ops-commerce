@@ -6,11 +6,11 @@
 
 | 구분 | 현재 상태 |
 |---|---|
-| 기준 날짜 | 2026-06-29 |
-| 현재 브랜치 | `feature/order-fulfillment-workflow` |
-| Git 상태 | 주문 fulfillment workflow 구현 중 |
-| 마지막 완료 작업 | `docs/reorganize-documentation` |
-| 다음 추천 작업 | `feature/order-fulfillment-workflow` 마무리 점검 |
+| 기준 날짜 | 2026-07-01 |
+| 현재 브랜치 | `docs/finalize-stock-operation-handoff` |
+| Git 상태 | 재고 operation 리팩토링 merge 후 문서 handoff 정리 중 |
+| 마지막 완료 작업 | `refactor/stock-controller-consolidation` PR merge |
+| 다음 추천 작업 | `feature/shipment-stock-workflow` |
 
 ## Phase 0. 설계 - 완료
 
@@ -66,58 +66,78 @@
 - `/members/me` 중심 회원 조회 정책 정리
 - 관리자 API 접근 정책 정리
 
-## Phase 4. 재고와 주문 운영 흐름 - 진행 중
+## Phase 4. 재고와 주문 운영 흐름 - 부분 완료
 
-현재 DB schema와 Java service는 고객 주문 이후의 판매 주문/출고 지시 workflow를 구현 중입니다.
+고객 주문 이후 판매 주문과 출고 지시 생성 흐름, 그리고 재고 수량 변경 엔진의 기본 구조를 구현했습니다.
 
-출고 흐름:
+완료:
+
+- 고객 주문 생성 시 판매 주문 `CREATED` 자동 생성
+- 판매 주문 출고 창고 지정 API
+- 판매 주문 확정/취소 API
+- 판매 주문 확정 시 고객 주문 확정과 출고 지시 생성
+- `stock_jobs`, `stock_movements` 기반 재고 할당/PICK/출고 원장 구조
+- `StockController` 단일 HTTP 진입점 정리
+- `StockService` facade와 `StockOperationService.execute(command)` 단일 수량 엔진 정리
+- 0수량 stock row 유지와 `includeZero=true` 조회 옵션
+- LOT 속성 변경 API와 `LOT_CHANGE_OUT`/`LOT_CHANGE_IN` 원장 기록
+
+현재 출고 목표 흐름:
 
 ```text
 customer_orders
 -> sales_orders
 -> shipment_orders
--> stock_jobs(reference_type = SHIPMENT_ORDER)
+-> stock_jobs
 -> stock_movements
 ```
 
-입고 흐름:
+현재 입고 목표 흐름:
 
 ```text
 purchase_orders
 -> receiving_orders
--> stock_jobs(reference_type = RECEIVING_ORDER)
+-> stock_jobs
 -> stock_movements
 ```
 
-추천 브랜치:
+다음 추천 브랜치:
 
 ```text
-feature/order-fulfillment-workflow
+feature/shipment-stock-workflow
 ```
 
 목표:
 
-- 고객 주문 생성 시 판매 주문 CREATED 자동 생성
-- 판매 주문 confirm/cancel API 구현
-- 판매 주문 확정 시 고객 주문 CONFIRMED 처리와 출고 지시 생성
-- 출고 지시 품목별 할당/피킹/출고 수량 관리
-- 구매 발주와 입고 지시 생성
-- 입고 지시 확정 시 LOT/현재고 반영
-- 기존 재고 operation과 출고/입고 workflow 연결
+- 출고 지시(`shipment_orders`) 기준 할당 API 설계
+- 출고 지시 품목과 재고 할당 수량 연결
+- PICKTO 이동과 `shipment_order_items.picked_quantity` 반영
+- 출고 확정과 `shipment_order_items.shipped_quantity` 반영
+- 기존 관리자 stock 테스트 API와 실제 출고 workflow API의 역할 분리
+- 수동 SQL 확인과 HTTP 테스트 순서 문서화
 
-## Phase 5. API 문서화 - 진행 예정
-
-추천 브랜치:
+후속 후보:
 
 ```text
-chore/openapi-docs
+feature/receiving-stock-workflow
 ```
 
 목표:
 
-- Swagger/OpenAPI 설정
-- Health/Member/Auth/Product/Inventory/Order API 문서화
-- 관리자 API 문서화 기준 수립
+- 구매 발주 생성/확정
+- 입고 지시 생성
+- 입고 확정 시 LOT/현재고 반영
+- 입고 수량 진행률 관리
+
+## Phase 5. API 문서화 - 완료
+
+완료:
+
+- Springdoc Swagger UI 추가
+- `/swagger-ui.html`, `/v3/api-docs` 제공
+- JWT Bearer 인증 스키마 등록
+- Health/Auth/Member/Product/Inventory/Order/Sales Order Controller와 DTO 문서화
+- Swagger 접근 경로 Security 허용
 
 ## Phase 6. JPA와 DB 설계 강화 - 예정
 
