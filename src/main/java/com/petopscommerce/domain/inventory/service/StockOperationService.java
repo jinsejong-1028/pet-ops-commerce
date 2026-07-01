@@ -1,14 +1,11 @@
 package com.petopscommerce.domain.inventory.service;
 
 import com.petopscommerce.domain.inventory.entity.Stock;
-import com.petopscommerce.domain.inventory.entity.StockMovement;
 import com.petopscommerce.domain.inventory.entity.StockMovementType;
 import com.petopscommerce.domain.inventory.entity.StockQuantityBucket;
 import com.petopscommerce.domain.inventory.repository.StockMovementRepository;
 import com.petopscommerce.domain.inventory.repository.StockRepository;
 import com.petopscommerce.domain.inventory.service.operation.StockOperationCommand;
-import com.petopscommerce.domain.inventory.service.operation.StockOperationCommand.StockMovementPlan;
-import com.petopscommerce.domain.inventory.service.operation.StockOperationCommand.StockOperationTarget;
 import com.petopscommerce.domain.inventory.service.operation.StockOperationResult;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -18,7 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 /**
  * - 재고 수량 변경 공통 서비스
- * - source/target/bucket command를 AVAILABLE/WORKING 증감 primitive로 처리
+ * - 상품/창고/location/LOT key로 현재고를 찾고 AVAILABLE/WORKING 증감 primitive로 처리
  */
 @Service
 @Transactional
@@ -40,7 +37,7 @@ public class StockOperationService {
 
     /**
      * - 재고 수량 작업 실행 단일 진입점
-     * - 업무별 switch 없이 source 차감, target 증가, movement 저장 순서로 처리
+     * - command key로 source/target 현재고를 찾고 차감, 증가, movement 저장 순서로 처리
      *
      * @param command 재고 수량 변경 command
      * @return 변경 결과
@@ -48,28 +45,22 @@ public class StockOperationService {
     public StockOperationResult execute(StockOperationCommand command) {
         validateCommand(command);
 
-        Stock sourceStock = resolveSourceStock(command.source());
-
-        // 단계 1: source가 있으면 bucket 기준 차감
-        // 결과: 차감 재고가 부족하면 Entity 검증 예외를 API 400으로 변환
-        if (command.source() != null) {
-            applyDecrease(sourceStock, command.source().bucket(), command.quantity());
+        Stock sourceStock = null;
+        if (command.sourceBucket() != null) {
+            sourceStock = getStockForUpdate(command.productId(), command.warehouseId(), command.fromLocationId(), command.fromLotId());
+            applyDecrease(sourceStock, command.sourceBucket(), command.quantity());
         }
 
-        // 단계 2: target이 있으면 bucket 기준 증가
-        // 결과: target stock이 없으면 양수 수량으로 신규 생성하고, 있으면 기존 row에 병합
         Stock targetStock = null;
-        if (command.target() != null) {
-            targetStock = resolveTargetAndIncrease(command.target(), sourceStock, command.quantity());
+        if (command.targetBucket() != null) {
+            targetStock = increaseTargetStock(command, sourceStock);
         }
 
-        // 단계 3: movement 기록
-        // 결과: 수량 변경 후 stock total snapshot이 원장에 저장됨
-        if (command.sourceMovement() != null) {
-            createMovement(command, sourceStock, command.sourceMovement(), sourceStock, targetStock);
+        if (command.sourceMovementType() != null) {
+            createMovement(command, sourceStock, command.sourceMovementType(), sourceMovementQuantity(command), sourceStock, targetStock);
         }
-        if (command.targetMovement() != null) {
-            createMovement(command, targetStock, command.targetMovement(), sourceStock, targetStock);
+        if (command.targetMovementType() != null) {
+            createMovement(command, targetStock, command.targetMovementType(), command.quantity(), sourceStock, targetStock);
         }
 
         return new StockOperationResult(sourceStock, targetStock);
@@ -78,157 +69,111 @@ public class StockOperationService {
     private void validateCommand(StockOperationCommand command) {
         validateRequired(command, "stock operation command is required");
         validateRequired(command.job(), "stock job is required");
+        validateRequired(command.productId(), "product id is required");
+        validateRequired(command.warehouseId(), "warehouse id is required");
         validatePositiveQuantity(command.quantity());
 
-        if (command.source() == null && command.target() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "source or target is required");
+        if (command.sourceBucket() == null && command.targetBucket() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "source or target bucket is required");
+        }
+
+        if (command.sourceBucket() != null) {
+            validateRequired(command.fromLocationId(), "source location is required");
+            validateRequired(command.fromLotId(), "source lot is required");
+        }
+
+        if (command.targetBucket() != null) {
+            validateRequired(command.toLocationId(), "target location is required");
+            validateRequired(command.toLotId(), "target lot is required");
         }
     }
 
-    private Stock resolveSourceStock(StockOperationTarget source) {
-        if (source == null) {
-            return null;
-        }
-
-        validateRequired(source.stockId(), "source stock is required");
-        validateRequired(source.bucket(), "source quantity bucket is required");
-
-        return getStockForUpdate(source.stockId());
-    }
-
-    private Stock resolveTargetAndIncrease(StockOperationTarget target, Stock sourceStock, Integer quantity) {
-        validateRequired(target.bucket(), "target quantity bucket is required");
-
-        if (target.stockId() != null) {
-            Stock targetStock = resolveExistingTargetStock(target.stockId(), sourceStock);
-            applyIncrease(targetStock, target.bucket(), quantity);
-            return targetStock;
-        }
-
-        Long productId = resolveTargetProductId(target, sourceStock);
-        Long warehouseId = resolveTargetWarehouseId(target, sourceStock);
-        Long locationId = resolveTargetLocationId(target, sourceStock);
-        Long lotId = resolveTargetLotId(target, sourceStock);
-
-        return applyIncreaseToStockKey(productId, warehouseId, locationId, lotId, quantity, target.bucket());
-    }
-
-    private Stock resolveExistingTargetStock(Long targetStockId, Stock sourceStock) {
-        if (sourceStock != null && sourceStock.getId().equals(targetStockId)) {
+    /**
+     * - target 현재고 증가 또는 생성
+     * - 기존 row면 bucket 기준 증가하고, 신규 row면 처리 수량이 반영된 row로 생성
+     */
+    private Stock increaseTargetStock(StockOperationCommand command, Stock sourceStock) {
+        if (isSameStockKey(command, sourceStock)) {
+            applyIncrease(sourceStock, command.targetBucket(), command.quantity());
             return sourceStock;
         }
 
-        return getStockForUpdate(targetStockId);
-    }
-
-    private Long resolveTargetProductId(StockOperationTarget target, Stock sourceStock) {
-        if (target.productId() != null) {
-            return target.productId();
-        }
-        validateRequired(sourceStock, "source stock is required to derive target product");
-        return sourceStock.getProductId();
-    }
-
-    private Long resolveTargetWarehouseId(StockOperationTarget target, Stock sourceStock) {
-        if (target.warehouseId() != null) {
-            return target.warehouseId();
-        }
-        validateRequired(sourceStock, "source stock is required to derive target warehouse");
-        return sourceStock.getWarehouseId();
-    }
-
-    private Long resolveTargetLocationId(StockOperationTarget target, Stock sourceStock) {
-        if (target.locationId() != null) {
-            return target.locationId();
-        }
-        validateRequired(sourceStock, "source stock is required to derive target location");
-        return sourceStock.getLocationId();
-    }
-
-    private Long resolveTargetLotId(StockOperationTarget target, Stock sourceStock) {
-        if (target.lotId() != null) {
-            return target.lotId();
-        }
-        validateRequired(sourceStock, "source stock is required to derive target lot");
-        return sourceStock.getLotId();
-    }
-
-    /**
-     * - stock key 기준 target 현재고 증가
-     * - row가 없으면 양수 수량으로 신규 생성하고, 있으면 bucket 기준 증가
-     */
-    private Stock applyIncreaseToStockKey(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket) {
-        validatePositiveQuantity(quantity);
-        validateRequired(productId, "target product is required");
-        validateRequired(warehouseId, "target warehouse is required");
-        validateRequired(locationId, "target location is required");
-        validateRequired(lotId, "target lot is required");
-        validateRequired(bucket, "target quantity bucket is required");
-
-        return stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(productId, warehouseId, locationId, lotId)
+        return stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(
+                        command.productId(),
+                        command.warehouseId(),
+                        command.toLocationId(),
+                        command.toLotId()
+                )
                 .map(stock -> {
-                    applyIncrease(stock, bucket, quantity);
+                    applyIncrease(stock, command.targetBucket(), command.quantity());
                     return stock;
                 })
-                .orElseGet(() -> createStockByPositiveQuantity(productId, warehouseId, locationId, lotId, quantity, bucket));
+                .orElseGet(() -> createTargetStock(command));
+    }
+
+    private boolean isSameStockKey(StockOperationCommand command, Stock sourceStock) {
+        return sourceStock != null
+                && sourceStock.getProductId().equals(command.productId())
+                && sourceStock.getWarehouseId().equals(command.warehouseId())
+                && sourceStock.getLocationId().equals(command.toLocationId())
+                && sourceStock.getLotId().equals(command.toLotId());
     }
 
     /**
-     * - 신규 현재고 생성
-     * - target 증가 작업에서만 신규 row를 만들 수 있음
+     * - target 현재고 신규 생성
+     * - 같은 key를 다른 요청이 먼저 만들면 다시 잠금 조회 후 기존 row를 사용
      */
-    private Stock createStockByPositiveQuantity(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket) {
+    private Stock createTargetStock(StockOperationCommand command) {
         try {
-            return stockRepository.saveAndFlush(createStock(productId, warehouseId, locationId, lotId, quantity, bucket));
+            return stockRepository.saveAndFlush(createStock(command));
         } catch (DataIntegrityViolationException exception) {
-            return retryIncreaseAfterDuplicate(productId, warehouseId, locationId, lotId, quantity, bucket, exception);
+            Stock stock = stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(
+                            command.productId(),
+                            command.warehouseId(),
+                            command.toLocationId(),
+                            command.toLotId()
+                    )
+                    .orElseThrow(() -> exception);
+            applyIncrease(stock, command.targetBucket(), command.quantity());
+            return stock;
         }
     }
 
     /**
-     * - 동시 신규 생성 충돌 재시도
-     * - 같은 현재고를 다른 요청이 먼저 만들었으면 다시 잠금 조회 후 증가 처리
+     * - target bucket 기준 신규 현재고 생성
      */
-    private Stock retryIncreaseAfterDuplicate(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket, DataIntegrityViolationException exception) {
-        Stock stock = stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(productId, warehouseId, locationId, lotId)
-                .orElseThrow(() -> exception);
-        applyIncrease(stock, bucket, quantity);
-        return stock;
-    }
-
-    /**
-     * - 수량 유형별 신규 현재고 생성
-     */
-    private Stock createStock(Long productId, Long warehouseId, Long locationId, Long lotId, Integer quantity, StockQuantityBucket bucket) {
-        if (bucket == StockQuantityBucket.WORKING) {
-            return Stock.createWorking(productId, warehouseId, locationId, lotId, quantity);
+    private Stock createStock(StockOperationCommand command) {
+        if (command.targetBucket() == StockQuantityBucket.WORKING) {
+            return Stock.createWorking(command.productId(), command.warehouseId(), command.toLocationId(), command.toLotId(), command.quantity());
         }
 
-        return Stock.create(productId, warehouseId, locationId, lotId, quantity);
+        return Stock.create(command.productId(), command.warehouseId(), command.toLocationId(), command.toLotId(), command.quantity());
     }
 
     private void applyIncrease(Stock stock, StockQuantityBucket bucket, Integer quantity) {
-        validateRequired(bucket, "quantity bucket is required");
-        applyStockChange(() -> {
+        try {
             if (bucket == StockQuantityBucket.WORKING) {
                 increaseWorking(stock, quantity);
                 return;
             }
 
             increaseAvailable(stock, quantity);
-        });
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
+        }
     }
 
     private void applyDecrease(Stock stock, StockQuantityBucket bucket, Integer quantity) {
-        validateRequired(bucket, "quantity bucket is required");
-        applyStockChange(() -> {
+        try {
             if (bucket == StockQuantityBucket.WORKING) {
                 decreaseWorking(stock, quantity);
                 return;
             }
 
             decreaseAvailable(stock, quantity);
-        });
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
+        }
     }
 
     /** - AVAILABLE 수량 증가 */
@@ -251,16 +196,20 @@ public class StockOperationService {
         stock.applyWorkingDelta(-quantity, "working stock is not enough");
     }
 
+    private Integer sourceMovementQuantity(StockOperationCommand command) {
+        if (command.sourceMovementType() == StockMovementType.ALLOCATE) {
+            return command.quantity();
+        }
+
+        return -command.quantity();
+    }
+
     /**
      * - 재고 이동 원장 생성
      */
-    private void createMovement(StockOperationCommand command, Stock stock, StockMovementPlan movementPlan, Stock sourceStock, Stock targetStock) {
+    private void createMovement(StockOperationCommand command, Stock stock, StockMovementType movementType, Integer movementQuantity, Stock sourceStock, Stock targetStock) {
         validateRequired(stock, "movement stock is required");
-        validateRequired(movementPlan.movementType(), "movement type is required");
-        validateMovementQuantitySign(movementPlan.quantitySign());
-
-        StockMovementType movementType = movementPlan.movementType();
-        Integer movementQuantity = command.quantity() * movementPlan.quantitySign();
+        validateRequired(movementType, "movement type is required");
 
         stockMovementRepository.save(StockMovement.create(
                 command.job(),
@@ -302,10 +251,10 @@ public class StockOperationService {
     }
 
     /**
-     * - 재고 수량 변경을 위한 잠금 조회
+     * - 재고 수량 변경을 위한 key 기반 잠금 조회
      */
-    private Stock getStockForUpdate(Long stockId) {
-        return stockRepository.findWithLockById(stockId)
+    private Stock getStockForUpdate(Long productId, Long warehouseId, Long locationId, Long lotId) {
+        return stockRepository.findWithLockByProductIdAndWarehouseIdAndLocationIdAndLotId(productId, warehouseId, locationId, lotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "stock not found"));
     }
 
@@ -318,20 +267,6 @@ public class StockOperationService {
     private void validateRequired(Object value, String message) {
         if (value == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
-        }
-    }
-
-    private void validateMovementQuantitySign(int quantitySign) {
-        if (quantitySign != 1 && quantitySign != -1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "movement quantity sign is invalid");
-        }
-    }
-
-    private void applyStockChange(Runnable runnable) {
-        try {
-            runnable.run();
-        } catch (IllegalArgumentException exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage());
         }
     }
 }

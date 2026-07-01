@@ -143,7 +143,7 @@ lot1~lot5
 ## 재고
 
 현재 재고 API는 관리자 재고 테스트와 이후 입고/출고 workflow 연결을 위한 기반 API입니다.
-재고 API의 HTTP 진입점은 `StockController`로 단일화하고, Controller는 `StockService` facade만 호출합니다. `StockService`는 기준정보 검증, job 생성, workflow 상태 변경을 조율하고, 실제 수량 변경과 movement 저장은 `StockOperationService.execute(command)` 단일 진입점에서 source/target/bucket 델타 조합으로 처리합니다.
+재고 API의 HTTP 진입점은 `StockController`로 단일화하고, Controller는 `StockService` facade만 호출합니다. `StockService`는 기준정보 검증, job 생성, workflow 상태 변경을 조율하고, 실제 수량 변경과 movement 저장은 `StockOperationService.execute(command)` 단일 진입점에서 상품/창고/from-to location/from-to LOT key와 bucket 델타 조합으로 처리합니다.
 
 | Method | Path | 설명 | 권한 |
 |---|---|---|---|

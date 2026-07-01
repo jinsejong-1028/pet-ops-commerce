@@ -474,7 +474,14 @@ quantity = 0: 오류
 ## StockOperationService 공통화
 
 재고 수량 변경 책임은 `StockOperationService.execute(command)` 단일 public 메서드로 모았습니다.
-외부 업무는 입고, 조정, 이동, 할당 같은 업무별 메서드를 직접 호출하지 않고, `StockOperationCommand`에 source, target, 수량 bucket, movement 기록 계획을 담아 전달합니다.
+외부 업무는 재고 엔진의 여러 public 메서드를 직접 호출하지 않고, `StockOperationCommand`에 상품, 창고, from/to location, from/to LOT, 수량 bucket, movement type을 담아 전달합니다.
+
+`StockOperationCommand`는 `stockId`가 아니라 현재고 업무 key를 기준으로 합니다.
+재고 모듈은 아래 key로 source 현재고를 잠금 조회하고, target 현재고를 잠금 조회하거나 새로 생성합니다.
+
+```text
+product_id + warehouse_id + location_id + lot_id
+```
 
 `StockOperationService` 내부는 업무 enum switch가 아니라 아래 네 가지 primitive 조합으로 동작합니다.
 
@@ -485,18 +492,18 @@ WORKING 증가
 WORKING 차감
 ```
 
-업무별 처리는 source/target 유무와 bucket 조합으로 표현합니다.
+업무별 처리는 from/to key와 bucket 조합으로 표현합니다.
 
-| 업무 | source | target | source bucket | target bucket |
+| 업무 | from key | to key | source bucket | target bucket |
 |---|---|---|---|---|
-| 입고 | 없음 | 입고 location stock key | 없음 | AVAILABLE 증가 |
-| 할당 | 같은 stock | 같은 stock | AVAILABLE 차감 | WORKING 증가 |
-| 일반 이동 | 출발 stock | 도착 location stock key | AVAILABLE 차감 | AVAILABLE 증가 |
-| PICK | 출발 stock | PICKTO location stock key | WORKING 차감 | WORKING 증가 |
-| 출고 | PICKTO stock | 없음 | WORKING 차감 | 없음 |
-| 조정 증가 | 없음 | 대상 stock | 없음 | AVAILABLE 증가 |
-| 조정 차감 | 대상 stock | 없음 | AVAILABLE 차감 | 없음 |
-| LOT 변경 | 기존 LOT stock | 신규 LOT stock key | AVAILABLE 차감 | AVAILABLE 증가 |
+| 입고 | 없음 | 입고 location + LOT | 없음 | AVAILABLE 증가 |
+| 할당 | 보관 location + LOT | 같은 location + LOT | AVAILABLE 차감 | WORKING 증가 |
+| 일반 이동 | 출발 location + LOT | 도착 location + 같은 LOT | AVAILABLE 차감 | AVAILABLE 증가 |
+| PICK | 보관 location + LOT | PICKTO location + 같은 LOT | WORKING 차감 | WORKING 증가 |
+| 출고 | PICKTO location + LOT | 없음 | WORKING 차감 | 없음 |
+| 조정 증가 | 없음 | 대상 location + LOT | 없음 | AVAILABLE 증가 |
+| 조정 차감 | 대상 location + LOT | 없음 | AVAILABLE 차감 | 없음 |
+| LOT 변경 | 기존 location + 기존 LOT | 같은 location + 신규 LOT | AVAILABLE 차감 | AVAILABLE 증가 |
 
 도착 현재고가 없을 때도 `quantity = 0` row를 먼저 만들지 않고, 실제 이동 수량만큼 바로 생성합니다.
 동일 key의 현재고가 이미 있으면 해당 row로 병합하고, 동시 생성 충돌이 발생하면 다시 잠금 조회 후 증가 처리합니다.

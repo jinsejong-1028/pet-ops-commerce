@@ -197,10 +197,13 @@ public class StockService {
         StockJob stockJob = saveJob(StockJob.createTransfer(nextStockJobNo(), sourceStock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
         StockOperationResult result = stockOperationService.execute(StockOperationCommand.move(
                 stockJob,
-                sourceStock.getId(),
-                StockQuantityBucket.AVAILABLE,
+                sourceStock.getProductId(),
+                sourceStock.getWarehouseId(),
+                sourceStock.getLocationId(),
                 toLocation.getId(),
-                null,
+                sourceStock.getLotId(),
+                sourceStock.getLotId(),
+                StockQuantityBucket.AVAILABLE,
                 StockQuantityBucket.AVAILABLE,
                 request.quantity(),
                 StockMovementType.TRANSFER_OUT,
@@ -230,10 +233,13 @@ public class StockService {
         StockJob stockJob = saveJob(StockJob.createLotChange(nextStockJobNo(), sourceStock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
         StockOperationResult result = stockOperationService.execute(StockOperationCommand.move(
                 stockJob,
-                sourceStock.getId(),
-                StockQuantityBucket.AVAILABLE,
-                null,
+                sourceStock.getProductId(),
+                sourceStock.getWarehouseId(),
+                sourceStock.getLocationId(),
+                sourceStock.getLocationId(),
+                sourceStock.getLotId(),
                 targetLot.getId(),
+                StockQuantityBucket.AVAILABLE,
                 StockQuantityBucket.AVAILABLE,
                 request.quantity(),
                 StockMovementType.LOT_CHANGE_OUT,
@@ -259,9 +265,12 @@ public class StockService {
         Stock stock = getStockEntity(request.stockId());
         StockJob stockJob = saveJob(StockJob.createAdjustment(nextStockJobNo(), stock.getWarehouseId(), request.reason(), LocalDateTime.now(clock)));
         StockOperationCommand command = request.quantity() > 0
-                ? StockOperationCommand.increaseExisting(
+                ? StockOperationCommand.increase(
                         stockJob,
-                        stock.getId(),
+                        stock.getProductId(),
+                        stock.getWarehouseId(),
+                        stock.getLocationId(),
+                        stock.getLotId(),
                         StockQuantityBucket.AVAILABLE,
                         request.quantity(),
                         StockMovementType.ADJUST,
@@ -269,7 +278,10 @@ public class StockService {
                 )
                 : StockOperationCommand.decrease(
                         stockJob,
-                        stock.getId(),
+                        stock.getProductId(),
+                        stock.getWarehouseId(),
+                        stock.getLocationId(),
+                        stock.getLotId(),
                         StockQuantityBucket.AVAILABLE,
                         Math.abs(request.quantity()),
                         StockMovementType.ADJUST,
@@ -299,7 +311,10 @@ public class StockService {
         StockJob stockJob = saveJob(StockJob.createSalesShipment(nextStockJobNo(), sourceStock.getWarehouseId(), request.orderId(), request.reason()));
         stockOperationService.execute(StockOperationCommand.convertBucket(
                 stockJob,
-                sourceStock.getId(),
+                sourceStock.getProductId(),
+                sourceStock.getWarehouseId(),
+                sourceStock.getLocationId(),
+                sourceStock.getLotId(),
                 StockQuantityBucket.AVAILABLE,
                 StockQuantityBucket.WORKING,
                 request.quantity(),
@@ -323,16 +338,20 @@ public class StockService {
         StockJob stockJob = getJob(request.jobId());
         validateJobStatus(stockJob, StockJobStatus.ALLOCATED);
         StockMovement allocationMovement = getMovement(stockJob.getId(), StockMovementType.ALLOCATE);
+        Stock allocatedStock = getStockEntity(allocationMovement.getStockId());
 
         // 단계 2: PICKTO location 검증 후 수량 엔진 실행
         // 결과: PICK_OUT/PICK_IN 한 쌍의 movement와 PICKTO 현재고 생성 또는 증가
         Location picktoLocation = getPicktoLocation(request.picktoLocationId(), stockJob.getWarehouseId());
         stockOperationService.execute(StockOperationCommand.move(
                 stockJob,
-                allocationMovement.getStockId(),
-                StockQuantityBucket.WORKING,
+                allocatedStock.getProductId(),
+                allocatedStock.getWarehouseId(),
+                allocatedStock.getLocationId(),
                 picktoLocation.getId(),
-                null,
+                allocatedStock.getLotId(),
+                allocatedStock.getLotId(),
+                StockQuantityBucket.WORKING,
                 StockQuantityBucket.WORKING,
                 request.quantity(),
                 StockMovementType.PICK_OUT,
@@ -367,7 +386,10 @@ public class StockService {
         // 결과: PICKTO total/working 감소와 SHIP_OUT movement 저장
         stockOperationService.execute(StockOperationCommand.decrease(
                 stockJob,
-                picktoStock.getId(),
+                picktoStock.getProductId(),
+                picktoStock.getWarehouseId(),
+                picktoStock.getLocationId(),
+                picktoStock.getLotId(),
                 StockQuantityBucket.WORKING,
                 request.quantity(),
                 StockMovementType.SHIP_OUT,
