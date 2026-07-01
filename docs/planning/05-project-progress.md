@@ -9,11 +9,11 @@
 | 기준 날짜 | 2026-07-01 |
 | 로컬 경로 | `C:\pet-ops-commerce` |
 | 원격 저장소 | `https://github.com/jinsejong-1028/pet-ops-commerce` |
-| 현재 브랜치 | `refactor/stock-controller-consolidation` |
-| Git 상태 | Stock Service facade와 Operation 단일 command 흐름 정리 진행 중 |
+| 현재 브랜치 | `docs/finalize-stock-operation-handoff` |
+| Git 상태 | 재고 operation 리팩토링 merge 후 문서 handoff 정리 중 |
 | 현재 DB | Docker PostgreSQL 16 |
-| 마지막 완료 작업 | `chore/openapi-docs` PR merge |
-| 다음 추천 작업 | Stock Service/Operation 리팩토링 검증 및 PR |
+| 마지막 완료 작업 | `refactor/stock-controller-consolidation` PR merge |
+| 다음 추천 작업 | `feature/shipment-stock-workflow` |
 
 ## 완료 작업
 
@@ -44,49 +44,59 @@
 | 23 | `docs/update-current-project-docs` | 현재 migration, API, 재고, 주문 workflow 기준으로 프로젝트 문서 최신화 | `docs/architecture/02-erd.md`, `docs/api/01-api-spec.md`, `docs/planning/05-project-progress.md` |
 | 24 | `docs/reorganize-documentation` | 루트 README와 docs 하위 폴더 구조 정리 | `README.md`, `docs/README.md` |
 | 25 | `feature/sales-order-warehouse-confirm-flow` | 판매 주문 창고 지정 후 확정/취소/출고 생성 흐름 정리 | `docs/api/01-api-spec.md`, `docs/architecture/02-erd.md`, `docs/domains/06-order-domain.md`, `docs/logs/2026-07-01.md` |
+| 26 | `chore/openapi-docs` | Springdoc Swagger UI와 OpenAPI 문서화 추가 | `docs/api/01-api-spec.md`, `docs/logs/2026-07-01.md` |
+| 27 | `refactor/stock-controller-consolidation` | StockController 단일 진입점, StockService facade, StockOperationService command 흐름 정리 | `docs/domains/04-inventory-domain.md`, `docs/api/01-api-spec.md`, `docs/logs/2026-07-01.md` |
 
 ## 현재 진행 작업
 
-현재 진행 중인 기능 브랜치는 없습니다.
+현재 브랜치는 문서 handoff 정리용입니다.
+
+```text
+docs/finalize-stock-operation-handoff
+```
 
 마지막 완료 흐름:
 
 ```text
-feature/sales-order-warehouse-confirm-flow
+refactor/stock-controller-consolidation
 ```
 
 완료 내용:
 
-- 판매 주문에 출고 창고를 먼저 지정하는 `PATCH /api/v1/admin/sales-orders/{salesOrderId}` 추가
-- 판매 주문 확정 API에서 요청 body 제거
-- 확정 시 `sales_orders.warehouse_id` 필수 검증 후 출고 주문 생성
-- `customer_orders.confirmed_at` 저장
-- `customer_order_items.status` 추가 및 확정/취소 상태 동기화
-- `OrderItem`을 공통 audit 상속 구조로 정리해 `updated_by` 자동 기록
+- `/api/v1/admin/stocks` 계열 Controller를 `StockController` 하나로 단일화
+- `StockCommandService`, `StockWorkflowService`를 제거하고 `StockService` facade로 통합
+- `StockOperationService.execute(StockOperationCommand)` 단일 수량 엔진 구조로 정리
+- operation command/result/type을 `service.operation` 패키지로 분리
+- 0수량 stock row는 삭제하지 않고 유지하며 목록 조회 기본값에서는 제외
+- `includeZero=true` 조회 옵션 추가
+- LOT 속성 변경 API `POST /api/v1/admin/stocks/change-lot` 추가
+- `LOT_CHANGE_OUT`, `LOT_CHANGE_IN` movement 이력 추가
 
 유지할 주의사항:
 
-- 기존 migration은 수정하지 않고 새 `V6__add_sales_order_warehouse_and_customer_order_status.sql` migration을 추가했습니다.
-- `V6`는 이미 로컬 DB에 적용된 이력이 있으므로 이후 주석/공백 변경도 금지합니다.
-- PostgreSQL은 `ALTER TABLE ADD COLUMN`으로 물리 컬럼 순서를 중간에 지정할 수 없습니다. 컬럼 순서는 Entity/문서의 논리 순서와 신규 `create table` 작성 시점에서 관리합니다.
-- migration에는 기존 데이터 보정용 `update/delete/임시 insert`를 넣지 않았습니다.
+- 기존 migration은 수정하지 않았습니다.
+- `src/test/**`는 수정하지 않았습니다.
+- 0수량 row는 force delete하지 않고 조회 조건으로 제어합니다.
+- 재고 수량 엔진의 내부 command/result/type은 DB 저장 enum이 아니므로 `entity`가 아니라 `service.operation`에 둡니다.
 - Codex는 Gradle, Docker, bootRun 명령을 직접 실행하지 않고 사용자에게 명령만 안내합니다.
 
 ## 다음 추천 작업
 
-### 1. API 문서화
+### 1. 출고 지시 기반 재고 workflow 연결
 
 브랜치 후보:
 
 ```text
-chore/openapi-docs
+feature/shipment-stock-workflow
 ```
 
 목표:
 
-- Swagger/OpenAPI 설정
-- Health/Member/Auth/Product/Inventory/Order API 문서화
-- 관리자 workflow API 문서화 기준 수립
+- 출고 지시(`shipment_orders`) 기준 재고 할당 API 설계
+- `shipment_order_items.allocated_quantity`, `picked_quantity`, `shipped_quantity`와 stock job 연결
+- PICKTO 이동과 출고 확정 API를 출고 지시 workflow에 연결
+- 관리자 stock 테스트 API와 실제 출고 workflow API의 역할 분리
+- HTTP 테스트 순서와 DB 확인 SQL 문서화
 
 ## 보류 작업
 
@@ -104,13 +114,13 @@ chore/openapi-docs
 
 ## 다음 세션 시작 기준
 
-`main`은 판매 주문 창고 지정/확정 흐름 merge가 완료된 clean 상태입니다.
+`main`은 OpenAPI 문서화와 재고 operation 리팩토링 merge가 완료된 clean 상태입니다.
 
 ```text
 프로젝트: C:\pet-ops-commerce
 현재 브랜치: main
-현재 상태: feature/sales-order-warehouse-confirm-flow PR merge 완료, git status clean
-다음 작업: chore/openapi-docs
+현재 상태: refactor/stock-controller-consolidation PR merge 완료, git status clean
+다음 작업: feature/shipment-stock-workflow
 작업 방식: 사용자가 명령 실행, Codex는 설명/수정 전 승인 후 진행
 petops-portfolio-workflow skill 기준으로 진행
 ```
@@ -119,7 +129,7 @@ petops-portfolio-workflow skill 기준으로 진행
 
 - `git checkout main`
 - `git pull`
-- `git checkout -b chore/openapi-docs`
+- `git checkout -b feature/shipment-stock-workflow`
 - `git status --short --branch`
 
 ## 검증 기준

@@ -62,7 +62,7 @@ GET http://localhost:8080/api/v1/health
 ## 현재 다음 작업 후보
 
 ```text
-feature/order-fulfillment-workflow
+feature/shipment-stock-workflow
 ```
 
-고객 주문을 판매 주문으로 확정하고, 판매 주문 기반 출고 지시와 재고 할당/PICK/출고 workflow를 연결하는 작업입니다.
+출고 지시(`shipment_orders`)를 기준으로 재고 할당, PICKTO 이동, 출고 확정을 연결하고 `shipment_order_items`의 처리 수량을 함께 갱신하는 작업입니다.
