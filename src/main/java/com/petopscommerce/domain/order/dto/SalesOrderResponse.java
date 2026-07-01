@@ -8,17 +8,17 @@ import java.time.LocalDateTime;
 
 /**
  * - 관리자 판매 주문 응답 DTO
- * - 판매 주문 상태와 확정 후 생성된 출고 주문 핵심 값을 반환
+ * - 판매 주문 상태와 출고 창고, 확정 후 생성된 출고 주문 핵심 값을 반환
  *
  * @param salesOrderId 판매 주문 ID
  * @param salesOrderNo 판매 주문 번호
  * @param salesOrderStatus 판매 주문 상태
  * @param orderDate 판매 주문 업무일자
  * @param customerOrderId 원천 고객 주문 ID
+ * @param warehouseId 판매 주문 출고 창고 ID
  * @param shipmentOrderId 출고 주문 ID
  * @param shipmentOrderNo 출고 주문 번호
  * @param shipmentOrderStatus 출고 주문 상태
- * @param warehouseId 출고 창고 ID
  * @param scheduledShipDate 출고 예정일
  * @param itemCount 판매 주문 또는 출고 주문 품목 수
  * @param confirmedAt 판매 주문 확정 일시
@@ -30,10 +30,10 @@ public record SalesOrderResponse(
         String salesOrderStatus,
         LocalDate orderDate,
         Long customerOrderId,
+        Long warehouseId,
         Long shipmentOrderId,
         String shipmentOrderNo,
         String shipmentOrderStatus,
-        Long warehouseId,
         LocalDate scheduledShipDate,
         Integer itemCount,
         LocalDateTime confirmedAt,
@@ -55,7 +55,7 @@ public record SalesOrderResponse(
                 salesOrder.getStatus().name(),
                 salesOrder.getOrderDate(),
                 salesOrder.getCustomerOrderId(),
-                null,
+                salesOrder.getWarehouseId(),
                 null,
                 null,
                 null,
@@ -82,10 +82,10 @@ public record SalesOrderResponse(
                 salesOrder.getStatus().name(),
                 salesOrder.getOrderDate(),
                 salesOrder.getCustomerOrderId(),
+                salesOrder.getWarehouseId(),
                 shipmentOrder.getId(),
                 shipmentOrder.getShipmentOrderNo(),
                 shipmentOrder.getStatus().name(),
-                shipmentOrder.getWarehouseId(),
                 shipmentOrder.getScheduledShipDate(),
                 itemCount,
                 salesOrder.getConfirmedAt(),

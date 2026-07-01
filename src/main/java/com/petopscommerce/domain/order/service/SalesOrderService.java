@@ -3,16 +3,17 @@ package com.petopscommerce.domain.order.service;
 import com.petopscommerce.domain.inventory.entity.Warehouse;
 import com.petopscommerce.domain.inventory.entity.WarehouseStatus;
 import com.petopscommerce.domain.inventory.repository.WarehouseRepository;
-import com.petopscommerce.domain.order.dto.CancelSalesOrderRequest;
-import com.petopscommerce.domain.order.dto.ConfirmSalesOrderRequest;
 import com.petopscommerce.domain.order.dto.SalesOrderResponse;
+import com.petopscommerce.domain.order.dto.UpdateSalesOrderRequest;
 import com.petopscommerce.domain.order.entity.Order;
+import com.petopscommerce.domain.order.entity.OrderItem;
 import com.petopscommerce.domain.order.entity.OrderStatus;
 import com.petopscommerce.domain.order.entity.SalesOrder;
 import com.petopscommerce.domain.order.entity.SalesOrderItem;
 import com.petopscommerce.domain.order.entity.SalesOrderStatus;
 import com.petopscommerce.domain.order.entity.ShipmentOrder;
 import com.petopscommerce.domain.order.entity.ShipmentOrderItem;
+import com.petopscommerce.domain.order.repository.OrderItemRepository;
 import com.petopscommerce.domain.order.repository.OrderRepository;
 import com.petopscommerce.domain.order.repository.SalesOrderItemRepository;
 import com.petopscommerce.domain.order.repository.SalesOrderRepository;
@@ -30,13 +31,14 @@ import java.util.List;
 
 /**
  * - 관리자 판매 주문 비즈니스 로직
- * - 판매 주문 확정/취소와 출고 주문 생성 담당
+ * - 판매 주문 창고 지정/확정/취소와 출고 주문 생성 담당
  */
 @Service
 @Transactional(readOnly = true)
 public class SalesOrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final WarehouseRepository warehouseRepository;
     private final SalesOrderRepository salesOrderRepository;
     private final SalesOrderItemRepository salesOrderItemRepository;
@@ -48,6 +50,7 @@ public class SalesOrderService {
      * - 생성자 주입
      *
      * @param orderRepository 고객 주문 DB 접근 객체
+     * @param orderItemRepository 고객 주문 품목 DB 접근 객체
      * @param warehouseRepository 창고 DB 접근 객체
      * @param salesOrderRepository 판매 주문 DB 접근 객체
      * @param salesOrderItemRepository 판매 주문 품목 DB 접근 객체
@@ -57,6 +60,7 @@ public class SalesOrderService {
      */
     public SalesOrderService(
             OrderRepository orderRepository,
+            OrderItemRepository orderItemRepository,
             WarehouseRepository warehouseRepository,
             SalesOrderRepository salesOrderRepository,
             SalesOrderItemRepository salesOrderItemRepository,
@@ -65,6 +69,7 @@ public class SalesOrderService {
             BusinessNumberGenerator businessNumberGenerator
     ) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.warehouseRepository = warehouseRepository;
         this.salesOrderRepository = salesOrderRepository;
         this.salesOrderItemRepository = salesOrderItemRepository;
@@ -74,15 +79,37 @@ public class SalesOrderService {
     }
 
     /**
-     * - 판매 주문 확정
-     * - 판매 주문과 고객 주문을 확정하고 창고 출고 주문을 생성
+     * - 판매 주문 수정
+     * - 확정 전 판매 주문에 출고 창고를 지정
      *
      * @param salesOrderId 판매 주문 ID
-     * @param request 판매 주문 확정 요청
+     * @param request 판매 주문 수정 요청
+     * @return 수정된 판매 주문 응답
+     */
+    @Transactional
+    public SalesOrderResponse updateSalesOrder(Long salesOrderId, UpdateSalesOrderRequest request) {
+        // 단계 1: 판매 주문 확인
+        // 결과: CREATED 상태 판매 주문만 창고 변경 가능
+        SalesOrder salesOrder = getSalesOrder(salesOrderId);
+        validateSalesOrderCreated(salesOrder);
+
+        // 단계 2: 출고 창고 확인
+        // 결과: ACTIVE 창고 ID를 sales_orders.warehouse_id에 저장
+        Warehouse warehouse = getActiveWarehouse(request.warehouseId());
+        salesOrder.assignWarehouse(warehouse.getId());
+
+        return SalesOrderResponse.from(salesOrder, getSalesOrderItems(salesOrder.getId()).size());
+    }
+
+    /**
+     * - 판매 주문 확정
+     * - 판매 주문과 고객 주문을 확정하고 판매 주문에 지정된 창고로 출고 주문을 생성
+     *
+     * @param salesOrderId 판매 주문 ID
      * @return 확정된 판매 주문과 생성된 출고 주문 응답
      */
     @Transactional
-    public SalesOrderResponse confirmSalesOrder(Long salesOrderId, ConfirmSalesOrderRequest request) {
+    public SalesOrderResponse confirmSalesOrder(Long salesOrderId) {
         // 단계 1: 판매 주문 확인
         // 결과: CREATED 상태 판매 주문만 확정 가능
         SalesOrder salesOrder = getSalesOrder(salesOrderId);
@@ -93,19 +120,21 @@ public class SalesOrderService {
         Order customerOrder = getCustomerOrder(salesOrder.getCustomerOrderId());
         validateCustomerOrderCreated(customerOrder);
 
-        // 단계 3: 판매 주문 품목 확인
-        // 결과: 출고 주문 품목으로 복사할 판매 주문 품목 확보
+        // 단계 3: 고객 주문/판매 주문 품목 확인
+        // 결과: header와 item 상태를 같은 트랜잭션에서 함께 변경
+        List<OrderItem> customerOrderItems = getCustomerOrderItems(customerOrder.getId());
         List<SalesOrderItem> salesOrderItems = getSalesOrderItems(salesOrder.getId());
 
-        // 단계 4: 출고 창고 확인
-        // 결과: ACTIVE 창고만 출고 주문 생성에 사용
-        Warehouse warehouse = getActiveWarehouse(request.warehouseId());
+        // 단계 4: 판매 주문 출고 창고 확인
+        // 결과: 판매 주문에 지정된 ACTIVE 창고만 출고 주문 생성에 사용
+        Warehouse warehouse = getSalesOrderWarehouse(salesOrder);
 
-        // 단계 5: 판매 주문/고객 주문 확정
-        // 결과: sales_orders와 customer_orders가 같은 업무 확정 상태로 변경
+        // 단계 5: 판매 주문/고객 주문/품목 확정
+        // 결과: 판매 확정 시각을 고객 주문에도 같이 기록
         LocalDateTime confirmedAt = LocalDateTime.now();
-        salesOrder.confirm(confirmedAt, request.reason());
-        customerOrder.confirm();
+        salesOrder.confirm(confirmedAt);
+        customerOrder.confirm(confirmedAt);
+        customerOrderItems.forEach(OrderItem::confirm);
         salesOrderItems.forEach(SalesOrderItem::confirm);
 
         // 단계 6: 출고 주문 저장
@@ -115,8 +144,8 @@ public class SalesOrderService {
                 shipmentOrderNo,
                 salesOrder.getId(),
                 warehouse.getId(),
-                request.scheduledShipDate(),
-                request.reason()
+                confirmedAt.toLocalDate(),
+                null
         );
         ShipmentOrder savedShipmentOrder = shipmentOrderRepository.save(shipmentOrder);
 
@@ -135,11 +164,10 @@ public class SalesOrderService {
      * - 출고 주문 생성 전 판매 주문과 고객 주문을 함께 취소
      *
      * @param salesOrderId 판매 주문 ID
-     * @param request 판매 주문 취소 요청
      * @return 취소된 판매 주문 응답
      */
     @Transactional
-    public SalesOrderResponse cancelSalesOrder(Long salesOrderId, CancelSalesOrderRequest request) {
+    public SalesOrderResponse cancelSalesOrder(Long salesOrderId) {
         // 단계 1: 판매 주문 확인
         // 결과: 출고 전 CREATED 상태 판매 주문만 취소 가능
         SalesOrder salesOrder = getSalesOrder(salesOrderId);
@@ -150,14 +178,16 @@ public class SalesOrderService {
         Order customerOrder = getCustomerOrder(salesOrder.getCustomerOrderId());
         validateCustomerOrderCreated(customerOrder);
 
-        // 단계 3: 판매 주문 품목 확인
+        // 단계 3: 고객 주문/판매 주문 품목 확인
         // 결과: 품목 상태도 CANCELED로 함께 변경
+        List<OrderItem> customerOrderItems = getCustomerOrderItems(customerOrder.getId());
         List<SalesOrderItem> salesOrderItems = getSalesOrderItems(salesOrder.getId());
 
-        // 단계 4: 판매 주문/고객 주문 취소
+        // 단계 4: 판매 주문/고객 주문/품목 취소
         // 결과: 출고 주문 없이 주문 흐름 종료
-        salesOrder.cancel(LocalDateTime.now(), request.reason());
+        salesOrder.cancel(LocalDateTime.now());
         customerOrder.cancel();
+        customerOrderItems.forEach(OrderItem::cancel);
         salesOrderItems.forEach(SalesOrderItem::cancel);
 
         return SalesOrderResponse.from(salesOrder, salesOrderItems.size());
@@ -186,6 +216,20 @@ public class SalesOrderService {
     }
 
     /**
+     * - 고객 주문 품목 목록 조회
+     *
+     * @param customerOrderId 고객 주문 ID
+     * @return 고객 주문 품목 목록
+     */
+    private List<OrderItem> getCustomerOrderItems(Long customerOrderId) {
+        List<OrderItem> customerOrderItems = orderItemRepository.findByOrderId(customerOrderId);
+        if (customerOrderItems.isEmpty()) { // 고객 주문 품목 없이 판매 확정/취소 불가
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "customer order items are empty");
+        }
+        return customerOrderItems;
+    }
+
+    /**
      * - 판매 주문 품목 목록 조회
      *
      * @param salesOrderId 판매 주문 ID
@@ -197,6 +241,19 @@ public class SalesOrderService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "sales order items are empty");
         }
         return salesOrderItems;
+    }
+
+    /**
+     * - 판매 주문에 지정된 출고 창고 조회
+     *
+     * @param salesOrder 판매 주문 Entity
+     * @return 활성 창고 Entity
+     */
+    private Warehouse getSalesOrderWarehouse(SalesOrder salesOrder) {
+        if (salesOrder.getWarehouseId() == null) { // 확정 전 창고 지정 필수
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "sales order warehouse is required");
+        }
+        return getActiveWarehouse(salesOrder.getWarehouseId());
     }
 
     /**

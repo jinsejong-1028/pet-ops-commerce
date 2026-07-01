@@ -61,7 +61,7 @@ receiving_orders
 
 현재 주문 생성 API는 배송 정보와 출고 지시는 아직 자동 생성하지 않습니다.
 대신 고객 주문 생성 시 `sales_orders`와 `sales_order_items`를 `CREATED` 상태로 자동 생성합니다.
-운영자는 판매 주문을 확인한 뒤 확정 또는 취소합니다.
+운영자는 판매 주문에 출고 창고를 지정한 뒤 확정 또는 취소합니다.
 
 ## 제외 범위
 
@@ -183,6 +183,28 @@ Authorization: Bearer {accessToken}
 ```
 
 
+### 관리자 판매 주문 창고 지정
+
+```text
+PATCH /api/v1/admin/sales-orders/{salesOrderId}
+```
+
+역할:
+
+```text
+sales_orders 조회(CREATED)
+-> ACTIVE warehouse 검증
+-> sales_orders.warehouse_id 저장
+```
+
+요청:
+
+```json
+{
+  "warehouseId": 1
+}
+```
+
 ### 관리자 판매 주문 확정
 
 ```text
@@ -193,25 +215,20 @@ POST /api/v1/admin/sales-orders/{salesOrderId}/confirm
 
 ```text
 sales_orders 조회(CREATED)
+-> sales_orders.warehouse_id 필수 검증
 -> customer_orders 조회(CREATED)
+-> customer_order_items 조회
 -> sales_order_items 조회
 -> ACTIVE warehouse 검증
 -> sales_orders CONFIRMED 변경
--> customer_orders CONFIRMED 변경
+-> customer_orders CONFIRMED 변경 및 confirmed_at 저장
+-> customer_order_items CONFIRMED 변경
 -> sales_order_items CONFIRMED 변경
--> shipment_orders 저장(CREATED)
+-> shipment_orders 저장(CREATED, sales_orders.warehouse_id 사용)
 -> shipment_order_items 저장(CREATED)
 ```
 
-요청:
-
-```json
-{
-  "warehouseId": 1,
-  "scheduledShipDate": "2026-06-30",
-  "reason": "confirm sales order for outbound"
-}
-```
+요청 body 없음.
 
 응답 핵심 값:
 
@@ -235,9 +252,11 @@ POST /api/v1/admin/sales-orders/{salesOrderId}/cancel
 ```text
 sales_orders 조회(CREATED)
 -> customer_orders 조회(CREATED)
+-> customer_order_items 조회
 -> sales_order_items 조회
 -> sales_orders CANCELED 변경
 -> customer_orders CANCELED 변경
+-> customer_order_items CANCELED 변경
 -> sales_order_items CANCELED 변경
 ```
 

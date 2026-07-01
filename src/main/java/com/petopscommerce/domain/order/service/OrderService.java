@@ -125,8 +125,7 @@ public class OrderService {
         SalesOrder salesOrder = SalesOrder.create(
                 salesOrderNo,
                 order.getId(),
-                order.getOrderedAt().toLocalDate(),
-                "created from customer order"
+                order.getOrderedAt().toLocalDate()
         );
         SalesOrder savedSalesOrder = salesOrderRepository.save(salesOrder);
 

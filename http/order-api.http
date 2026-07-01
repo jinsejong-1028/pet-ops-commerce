@@ -22,7 +22,7 @@ Authorization: Bearer {{accessToken}}
   "items": [
     {
       "productId": 1,
-      "quantity": 2
+      "quantity": 4
     }
   ]
 }
@@ -67,26 +67,25 @@ Content-Type: application/json
 > {% client.global.set("adminAccessToken", response.body.data.accessToken); %}
 
 
-### Confirm sales order
+### Update sales order warehouse
 # 고객 주문 생성 시 sales_orders가 CREATED 상태로 자동 생성됩니다.
 # salesOrderId는 DB에서 sales_orders.id를 확인해 넣습니다.
-POST http://localhost:8080/api/v1/admin/sales-orders/1/confirm
+PATCH http://localhost:8080/api/v1/admin/sales-orders/3
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
 {
-  "warehouseId": 1,
-  "scheduledShipDate": "2026-06-30",
-  "reason": "confirm sales order for outbound"
+  "warehouseId": 1
 }
+
+
+### Confirm sales order
+# 판매 주문에 warehouseId가 지정된 뒤 확정해야 합니다.
+POST http://localhost:8080/api/v1/admin/sales-orders/3/confirm
+Authorization: Bearer {{adminAccessToken}}
 
 
 ### Cancel sales order
 # 출고 주문 생성 전 CREATED 상태의 판매 주문을 취소합니다.
 POST http://localhost:8080/api/v1/admin/sales-orders/1/cancel
-Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
-
-{
-  "reason": "cancel before shipment"
-}
